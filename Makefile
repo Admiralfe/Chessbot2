@@ -14,7 +14,7 @@ bitboard.o: bitboard.h types.h
 
 position.o: position.h types.h bitboard.h
 
-tests.o: tests.h position.h types.h bitboard.h
+tests.o: attacks.h tests.h position.h types.h bitboard.h
 
 main.o: position.h bitboard.h types.h tests.h
 

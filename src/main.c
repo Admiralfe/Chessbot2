@@ -6,7 +6,6 @@
 #include "types.h"
 
 int main() {
-    test_FEN();
-    test_bitshifts();
+    run_all_tests();
     return 0;
 }

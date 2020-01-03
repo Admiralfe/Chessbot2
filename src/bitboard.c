@@ -21,6 +21,9 @@ const u64 Rank6BB = 0xffULL << (8 * 5);
 const u64 Rank7BB = 0xffULL << (8 * 6);
 const u64 Rank8BB = 0xffULL << (8 * 7);
 
+const u64 Main_diagBB = 0x8040201008040201ULL;
+const u64 Anti_diagBB = 0x0102040810204080ULL;
+
 
 void print_bitboard(u64 bitboard) {
     char bb_str[73]; //Size is 64 squares, 8 newlines and 1 null terminator
@@ -39,6 +42,6 @@ void print_bitboard(u64 bitboard) {
 
     bb_str[i] = '\0';
 
-    printf("%s", bb_str);
+    printf("%s\n", bb_str);
 }
 

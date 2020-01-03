@@ -6,6 +6,13 @@
 #include "tests.h"
 #include "types.h"
 
+void run_all_tests() {
+    test_FEN();
+    test_bitshifts();
+    test_attack_sets();
+    test_ray_attacks();
+}
+
 void test_FEN() {
     //Test the starting position
     struct Position pos = pos_from_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -64,4 +71,22 @@ void test_attack_sets() {
     assert(attack_set.king[e4] == (set_bit(e5) | set_bit(f5) | set_bit(f4)
                                     | set_bit(f3) | set_bit(e3) | set_bit(d3)
                                     | set_bit(d4) | set_bit(d5)));
+}
+
+void test_ray_attacks() {
+    fill_attack_rays();
+
+    assert(attack_rays[e4][NORTHEAST] == (set_bit(f5) | set_bit(g6) | set_bit(h7)));
+    assert(attack_rays[e4][NORTH] == (set_bit(e5) | set_bit(e6) | set_bit(e7) | set_bit(e8)));
+    assert(attack_rays[e4][EAST] == (set_bit(f4) | set_bit(g4) | set_bit(h4)));
+    assert(attack_rays[e4][SOUTHEAST] == (set_bit(f3) | set_bit(g2) | set_bit(h1)));
+    assert(attack_rays[e4][SOUTH] == (set_bit(e3) | set_bit(e2) | set_bit(e1)));
+    assert(attack_rays[e4][SOUTHWEST] == (set_bit(d3) | set_bit(c2) | set_bit(b1)));
+    assert(attack_rays[e4][WEST] == (set_bit(d4) | set_bit(c4) | set_bit(b4) | set_bit(a4)));
+    assert(attack_rays[e4][NORTHWEST] == (set_bit(d5) | set_bit(c6) | set_bit(b7) | set_bit(a8)));
+
+    assert(attack_rays[h8][NORTH] == 0ULL);
+    assert(attack_rays[a1][WEST] == 0ULL);
+    assert(attack_rays[b2][NORTHWEST] == set_bit(a3));
+    assert(attack_rays[g7][SOUTHEAST] == set_bit(h6));
 }

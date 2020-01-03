@@ -23,6 +23,9 @@ extern const u64 Rank6BB;
 extern const u64 Rank7BB;
 extern const u64 Rank8BB;
 
+extern const u64 Main_diagBB;
+extern const u64 Anti_diagBB;
+
 void print_bitboard(u64 bitboard);
 
 static inline u64 shift_N(u64 bitboard) { return bitboard << 8; }

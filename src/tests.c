@@ -3,6 +3,7 @@
 #include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
+#include "movegen.h"
 #include "tests.h"
 #include "types.h"
 
@@ -17,8 +18,17 @@ void test_FEN() {
     //Test the starting position
     struct Position pos = pos_from_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
+    struct Position pos_ep = pos_from_FEN("rnbqkbnr/ppp2ppp/8/3Pp3/8/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 1");
+
     //Check some of the pieces
-    assert(pos.piece_list[3] == BLACK_QUEEN && pos.piece_list[63] == WHITE_ROOK);
+    assert(pos.piece_list[3] == WHITE_QUEEN && pos.piece_list[63] == BLACK_ROOK);
+
+    //Check the bitboards;
+    assert(pos.pawns[WHITE] == Rank2BB);
+    assert(pos.pawns[BLACK] == Rank7BB);
+
+    assert(pos.knights[WHITE] == (set_bit(b1) | set_bit(g1)));
+    assert(pos.bishops[BLACK] == (set_bit(c8) | set_bit(f8)));
     
     //Castling rights
     assert(pos.can_kingside_castle[WHITE] && pos.can_queenside_caslte[WHITE]
@@ -29,6 +39,7 @@ void test_FEN() {
 
     //Should be no ep square.
     assert(pos.ep_square == SQUARE_EMPTY);
+    assert(pos_ep.ep_square == e6);
 
     //50 move clock should be 0
     assert(pos.half_move_clock == 0);
@@ -89,4 +100,18 @@ void test_ray_attacks() {
     assert(attack_rays[a1][WEST] == 0ULL);
     assert(attack_rays[b2][NORTHWEST] == set_bit(a3));
     assert(attack_rays[g7][SOUTHEAST] == set_bit(h6));
+}
+
+void test_movegen_pawns() {
+    fill_attack_sets();
+
+    struct Position pos = pos_from_FEN("rnbqkbnr/ppp2ppp/8/3Pp3/8/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 1");
+
+    struct Move move_list[256];
+
+    int num_moves = generate_pawn_moves(move_list, pos);
+
+    for (int i = 0; i < num_moves; ++i)
+        print_move(move_list[i], pos);
+    return ;
 }

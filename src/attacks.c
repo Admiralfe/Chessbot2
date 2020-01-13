@@ -114,3 +114,60 @@ void fill_attack_sets() {
         attack_set.king[sq] = king_attacks(sq);
     }
 }
+
+u64 positive_ray_attacks(u64 occupancy, enum Direction dir, enum Square sq) {
+    assert(dir == EAST || dir == NORTH || dir == NORTHEAST || dir == NORTHWEST);
+
+    u64 attacks = attack_rays[sq][dir];
+    u64 blockers = occupancy & attacks;
+    enum Square blocker_sq;
+    if (blockers) {
+        blocker_sq = lsb(blockers);
+        attacks ^= attack_rays[blocker_sq][dir];
+    }
+
+    return attacks;
+}
+
+u64 negative_ray_attacks(u64 occupancy, enum Direction dir, enum Square sq) {
+    assert(dir == WEST || dir == SOUTH || dir == SOUTHEAST || dir == SOUTHWEST);
+
+    u64 attacks = attack_rays[sq][dir];
+    u64 blockers = occupancy & attacks;
+    enum Square blocker_sq;
+    if (blockers) {
+        blocker_sq = msb(blockers);
+        attacks ^= attack_rays[blocker_sq][dir];
+    }
+
+    return attacks;
+}
+
+u64 attacks_from(enum Piece_type piece_type, enum Square sq, u64 occupancy) {
+    switch (piece_type) {
+        case ROOK:
+            return positive_ray_attacks(occupancy, NORTH, sq) |
+                positive_ray_attacks(occupancy, EAST, sq)  |
+                negative_ray_attacks(occupancy, SOUTH, sq) |
+                negative_ray_attacks(occupancy, WEST, sq);
+        case BISHOP:
+            return positive_ray_attacks(occupancy, NORTHEAST, sq) |
+                positive_ray_attacks(occupancy, NORTHWEST, sq)  |
+                negative_ray_attacks(occupancy, SOUTHEAST, sq) |
+                negative_ray_attacks(occupancy, SOUTHWEST, sq);
+
+        case QUEEN:
+            return attacks_from(BISHOP, sq, occupancy) |
+                   attacks_from(ROOK, sq, occupancy);
+        
+        case KING:
+            return king_attacks(sq);
+        
+        case KNIGHT:
+            return knight_attacks(sq);
+
+        default:
+            return 0ULL;
+    }
+}
+

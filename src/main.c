@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include "tests.h"
@@ -7,5 +8,6 @@
 
 int main() {
     run_all_tests();
+    test_movegen_pawns();
     return 0;
 }

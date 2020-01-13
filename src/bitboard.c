@@ -30,13 +30,13 @@ void print_bitboard(u64 bitboard) {
     
     //Index to keep track of position in string
     int i = 0;
-    for (int row = 7; row >= 0; row--) {
-        for (int col = 0; col < 8; col++) {
+    for (int row = 7; row >= 0; --row) {
+        for (int col = 0; col < 8; ++col) {
             bb_str[i] = is_set(bitboard, 8*row + col) ? '1' : '.';
-            i++;
+            ++i;
         }
         bb_str[i] = '\n';
-        i++;
+        ++i;
     }   
 
 
@@ -45,3 +45,30 @@ void print_bitboard(u64 bitboard) {
     printf("%s\n", bb_str);
 }
 
+void get_squares(enum Square *sq_list, u64 bb) {
+    while (bb) 
+        *sq_list++ = pop_lsb(&bb);
+}
+
+u64 shift_bb(u64 bitboard, enum Direction dir) {
+    switch (dir) {
+        case NORTH:
+            return shift_N(bitboard);
+        case SOUTH:
+            return shift_S(bitboard);
+        case NORTHEAST:
+            return shift_NE(bitboard);
+        case EAST:
+            return shift_E(bitboard);
+        case SOUTHEAST:
+            return shift_SE(bitboard);
+        case SOUTHWEST:
+            return shift_SW(bitboard);
+        case WEST:
+            return shift_W(bitboard);
+        case NORTHWEST:
+            return shift_NW(bitboard);
+    }
+
+    return 0ULL;
+}

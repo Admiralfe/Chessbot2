@@ -12,6 +12,7 @@ void run_all_tests() {
     test_bitshifts();
     test_attack_sets();
     test_ray_attacks();
+    test_attacks_from();
 }
 
 void test_FEN() {
@@ -29,6 +30,9 @@ void test_FEN() {
 
     assert(pos.knights[WHITE] == (set_bit(b1) | set_bit(g1)));
     assert(pos.bishops[BLACK] == (set_bit(c8) | set_bit(f8)));
+
+    assert(pos.occupied_squares[WHITE] == (Rank1BB | Rank2BB));
+    assert(pos.occupied_squares[BLACK] == (Rank7BB | Rank8BB));
     
     //Castling rights
     assert(pos.can_kingside_castle[WHITE] && pos.can_queenside_caslte[WHITE]
@@ -102,16 +106,51 @@ void test_ray_attacks() {
     assert(attack_rays[g7][SOUTHEAST] == set_bit(h6));
 }
 
+void test_attacks_from() {
+    fill_attack_rays();
+
+    struct Position pos = pos_from_FEN("8/4rn2/4k3/2B5/3P1Q2/4K3/8/5R1b w - - 0 1");
+
+    u64 attacks_queen = attacks_from(QUEEN, &pos, f4);
+    u64 attacks_bishop = attacks_from(BISHOP, &pos, c5);
+    u64 attacks_rook = attacks_from(ROOK, &pos, f1);
+
+    print_position(pos);
+
+    printf("Queen attacks\n");
+    print_bitboard(attacks_queen);
+
+    printf("Bishop attacks\n");
+    print_bitboard(attacks_bishop);
+
+    printf("Rook attacks\n");
+    print_bitboard(attacks_rook);
+}
+
 void test_movegen_pawns() {
     fill_attack_sets();
 
     struct Position pos = pos_from_FEN("rnbqkbnr/ppp2ppp/8/3Pp3/8/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 1");
+    struct Position pos2 = pos_from_FEN("r1bqkbnr/1ppp1ppp/p1B5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1");
+    struct Position pos_promotions = pos_from_FEN("1bn5/PP6/8/3k1K2/8/8/8/8 w - - 0 1");
 
     struct Move move_list[256];
-
+    struct Move move_list2[256];
+    struct Move move_list_prom[256];
+ 
     int num_moves = generate_pawn_moves(move_list, pos);
+    int num_moves2 = generate_pawn_moves(move_list2, pos2);
+    int num_moves_prom = generate_pawn_moves(move_list_prom, pos_promotions);
 
+    printf("Moves in position 1:\n");
     for (int i = 0; i < num_moves; ++i)
         print_move(move_list[i], pos);
-    return ;
+
+    printf("\nMoves in position 2:\n");
+    for (int i = 0; i < num_moves2; ++i)
+        print_move(move_list2[i], pos2);
+
+    printf("\nMoves in position 3:\n");
+    for (int i = 0; i < num_moves_prom; ++i)
+        print_move(move_list_prom[i], pos_promotions);
 }

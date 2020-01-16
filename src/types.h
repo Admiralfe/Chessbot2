@@ -60,4 +60,8 @@ enum Direction {
     NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST
 };
 
+static inline enum Piece_type to_piece_type(enum Piece p) {
+    return (p == PIECE_EMPTY) ? PT_NULL : (p - 1) % 6;
+}
+
 #endif

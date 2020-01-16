@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "attacks.h"
 #include "bitboard.h"
 #include "movegen.h"
@@ -17,11 +19,12 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
 
     u64 pawns = pos.pawns[us];
     u64 promotion_pawns = pawns & our_rank7bb;
-    u64 promotion_targets = shift_bb(promotion_pawns, up) & ~pos.occupied_squares[us];
+
+    u64 promotion_targets = shift_bb(promotion_pawns, up) & ~pos_occupancy(pos);
 
     u64 non_promotion_pawns = pawns ^ promotion_pawns;
-    u64 single_push_targets = shift_bb(non_promotion_pawns, up) & ~pos.occupied_squares[us];
-    u64 double_push_targets = shift_bb(single_push_targets & our_rank3bb, up) & ~pos.occupied_squares[us];
+    u64 single_push_targets = shift_bb(non_promotion_pawns, up) & ~pos_occupancy(pos);
+    u64 double_push_targets = shift_bb(single_push_targets & our_rank3bb, up) & ~pos_occupancy(pos);
 
     while (promotion_pawns) {
         enum Square from = pop_lsb(&promotion_pawns);
@@ -42,7 +45,6 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
     while (promotion_targets) {
         enum Square to = pop_lsb(&promotion_targets);
         enum Square from  = (us == WHITE) ? to - 8 : to + 8;
-
         *move_list++ = create_special_move(PROMOTION, KNIGHT, from, to);
         *move_list++ = create_special_move(PROMOTION, BISHOP, from, to);
         *move_list++ = create_special_move(PROMOTION, ROOK, from, to);
@@ -80,12 +82,8 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
 
     //Enpassant moves
     if (pos.ep_square != SQUARE_EMPTY) {
-        printf("%d\n", pos.ep_square);
         u64 ep_square_bb = set_bit(pos.ep_square);
         u64 ep_attacker_squares = shift_E(shift_bb(ep_square_bb, down)) | shift_W(shift_bb(ep_square_bb, down));
-
-        print_bitboard(ep_square_bb);
-        print_bitboard(ep_attacker_squares);
 
         //Opponent made double pawn push last move.
         //Check if any of our pawns attack the target square.
@@ -100,3 +98,25 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
 
     return number_of_moves;
 }
+
+int generate_sliding_attacks(struct Move *move_list, struct Position pos) {
+    enum Side us = pos.side_to_move;
+
+    //Queens
+    u64 queens_bb = pos.queens[us];
+    while (queens_bb) {
+        enum Square from = pop_lsb(&queens_bb);
+        u64 attacks = attacks_from(QUEEN, &pos, from) & ~pos.occupied_squares[us];
+
+        while (attacks) {
+            enum Square to = pop_lsb(&attacks);
+            *move_list++ = create_regular_move(from, to);
+        }
+    }
+
+    u64 bishops_bb = pos.bishops[us];
+    while (bishops_bb) {
+        enum Square from = pop_lsb(&bishops_bb);
+    }
+}
+

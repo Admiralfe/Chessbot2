@@ -8,7 +8,7 @@ obj = $(src:.c=.o)
 chessBot:	$(obj)
 	$(CC) $(CFLAGS) -o $@ $^
 
-attacks.o: attacks.h types.h
+attacks.o: attacks.h position.h types.h
 
 bitboard.o: bitboard.h types.h
 

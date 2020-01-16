@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "attacks.h"
+#include "position.h"
 #include "bitboard.h"
 #include "types.h"
 
@@ -143,8 +144,9 @@ u64 negative_ray_attacks(u64 occupancy, enum Direction dir, enum Square sq) {
     return attacks;
 }
 
-u64 attacks_from(enum Piece_type piece_type, enum Square sq, u64 occupancy) {
-    switch (piece_type) {
+u64 attacks_from(enum Piece_type pt, const struct Position *pos, enum Square sq) {
+    u64 occupancy = pos_occupancy(*pos);
+    switch (pt) {
         case ROOK:
             return positive_ray_attacks(occupancy, NORTH, sq) |
                 positive_ray_attacks(occupancy, EAST, sq)  |
@@ -152,13 +154,13 @@ u64 attacks_from(enum Piece_type piece_type, enum Square sq, u64 occupancy) {
                 negative_ray_attacks(occupancy, WEST, sq);
         case BISHOP:
             return positive_ray_attacks(occupancy, NORTHEAST, sq) |
-                positive_ray_attacks(occupancy, NORTHWEST, sq)  |
+                positive_ray_attacks(occupancy, NORTHWEST, sq) |
                 negative_ray_attacks(occupancy, SOUTHEAST, sq) |
                 negative_ray_attacks(occupancy, SOUTHWEST, sq);
 
         case QUEEN:
-            return attacks_from(BISHOP, sq, occupancy) |
-                   attacks_from(ROOK, sq, occupancy);
+            return attacks_from(BISHOP, pos, sq) |
+                   attacks_from(ROOK, pos, sq);
         
         case KING:
             return king_attacks(sq);

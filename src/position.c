@@ -119,39 +119,51 @@ void pos_from_piece_list(struct Position *pos) {
         switch (pos->piece_list[i]) {
             case WHITE_PAWN:
                 pos->pawns[WHITE] |= set_bit(i);
+                pos->occupied_squares[WHITE] |= set_bit(i);
                 break;
             case WHITE_KNIGHT:
                 pos->knights[WHITE] |=  set_bit(i);
+                pos->occupied_squares[WHITE] |= set_bit(i);
                 break;
             case WHITE_BISHOP:
                 pos->bishops[WHITE] |= set_bit(i);
+                pos->occupied_squares[WHITE] |= set_bit(i);
                 break;
             case WHITE_ROOK:
                 pos->rooks[WHITE] |= set_bit(i);
+                pos->occupied_squares[WHITE] |= set_bit(i);
                 break;
             case WHITE_QUEEN:
                 pos->queens[WHITE] |= set_bit(i);
+                pos->occupied_squares[WHITE] |= set_bit(i);
                 break;
             case WHITE_KING:
                 pos->kings[WHITE] |= set_bit(i);
+                pos->occupied_squares[WHITE] |= set_bit(i);
                 break;
             case BLACK_PAWN:
                 pos->pawns[BLACK] |= set_bit(i);
+                pos->occupied_squares[BLACK] |= set_bit(i);
                 break;
             case BLACK_KNIGHT:
                 pos->knights[BLACK] |=  set_bit(i);
+                pos->occupied_squares[BLACK] |= set_bit(i);
                 break;
             case BLACK_BISHOP:
                 pos->bishops[BLACK] |= set_bit(i);
+                pos->occupied_squares[BLACK] |= set_bit(i);
                 break;
             case BLACK_ROOK:
                 pos->rooks[BLACK] |= set_bit(i);
+                pos->occupied_squares[BLACK] |= set_bit(i);
                 break;
             case BLACK_QUEEN:
                 pos->queens[BLACK] |= set_bit(i);
+                pos->occupied_squares[BLACK] |= set_bit(i);
                 break;
             case BLACK_KING:
                 pos->kings[BLACK] |= set_bit(i);
+                pos->occupied_squares[BLACK] |= set_bit(i);
                 break;
             case PIECE_EMPTY:
                 break; //Nothing needs to be done

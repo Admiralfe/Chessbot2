@@ -6,13 +6,8 @@
 #include "types.h"
 
 struct Position {
-    /* Piece information and square information */
-    u64 pawns[2];
-    u64 knights[2];
-    u64 bishops[2];
-    u64 rooks[2];
-    u64 queens[2];
-    u64 kings[2];
+    //Bitboards for the pieces indexed by piece_type and side.
+    u64 piece_bb[6][2];
 
     u64 empty_squares;
 
@@ -25,13 +20,12 @@ struct Position {
     enum Side side_to_move;
 
     bool can_kingside_castle[2];
-    bool can_queenside_caslte[2];
+    bool can_queenside_castle[2];
 
     enum Square ep_square;
 
     unsigned int half_move_clock;
     unsigned int fullmove_count;
-    
 };
 
 struct Move {
@@ -51,6 +45,9 @@ void print_move(struct Move move, struct Position pos);
 
 //Prints a simple ASCII representation of the position.
 void print_position(struct Position position);
+
+bool can_kingside_castle(enum Side side, const struct Position *pos);
+bool can_queenside_castle(enum Side side, const struct Position *pos);
 
 static inline enum Piece get_piece(struct Position p, enum Square s) {
     return p.piece_list[s];

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 
 #include "attacks.h"
 #include "bitboard.h"
@@ -13,6 +14,7 @@ void run_all_tests() {
     test_attack_sets();
     test_ray_attacks();
     test_attacks_from();
+    test_movegen();
 }
 
 void test_FEN() {
@@ -25,18 +27,18 @@ void test_FEN() {
     assert(pos.piece_list[3] == WHITE_QUEEN && pos.piece_list[63] == BLACK_ROOK);
 
     //Check the bitboards;
-    assert(pos.pawns[WHITE] == Rank2BB);
-    assert(pos.pawns[BLACK] == Rank7BB);
+    assert(pos.piece_bb[PAWN][WHITE] == Rank2BB);
+    assert(pos.piece_bb[PAWN][BLACK] == Rank7BB);
 
-    assert(pos.knights[WHITE] == (set_bit(b1) | set_bit(g1)));
-    assert(pos.bishops[BLACK] == (set_bit(c8) | set_bit(f8)));
+    assert(pos.piece_bb[KNIGHT][WHITE] == (set_bit(b1) | set_bit(g1)));
+    assert(pos.piece_bb[BISHOP][BLACK] == (set_bit(c8) | set_bit(f8)));
 
     assert(pos.occupied_squares[WHITE] == (Rank1BB | Rank2BB));
     assert(pos.occupied_squares[BLACK] == (Rank7BB | Rank8BB));
     
     //Castling rights
-    assert(pos.can_kingside_castle[WHITE] && pos.can_queenside_caslte[WHITE]
-        && pos.can_kingside_castle[BLACK] && pos.can_queenside_caslte[BLACK]);
+    assert(pos.can_kingside_castle[WHITE] && pos.can_queenside_castle[WHITE]
+        && pos.can_kingside_castle[BLACK] && pos.can_queenside_castle[BLACK]);
     
     //Should be white's
     assert(pos.side_to_move == WHITE);
@@ -153,4 +155,53 @@ void test_movegen_pawns() {
     printf("\nMoves in position 3:\n");
     for (int i = 0; i < num_moves_prom; ++i)
         print_move(move_list_prom[i], pos_promotions);
+}
+
+void test_castling_rights() {
+    struct Position pos1 = pos_from_FEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+
+    assert(can_kingside_castle(WHITE, &pos1)
+        && can_queenside_castle(WHITE, &pos1)
+        && can_kingside_castle(BLACK, &pos1)
+        && can_queenside_castle(BLACK, &pos1));
+
+    struct Position pos2 = pos_from_FEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w - - 0 1");
+
+    //Castling shouldn't be legal here because of castling rights not being set in FEN string.
+    assert(!can_kingside_castle(WHITE, &pos2)
+        && !can_queenside_castle(WHITE, &pos2)
+        && !can_kingside_castle(BLACK, &pos2)
+        && !can_queenside_castle(BLACK, &pos2));
+
+    struct Position pos3 = pos_from_FEN("r3kb1r/p1ppqp2/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R2BK2R w KQkq - 0 1");
+
+    //Some of the castlings should be blocked in this position.
+    assert(can_kingside_castle(WHITE, &pos3)
+        && !can_queenside_castle(WHITE, &pos3)
+        && !can_kingside_castle(BLACK, &pos3)
+        && can_queenside_castle(BLACK, &pos3));
+}
+
+void test_movegen() {
+    fill_attack_rays();
+    fill_attack_sets();
+
+    struct Position pos_starting = pos_from_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    struct Position pos_captures = pos_from_FEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+
+    struct Move move_list_starting[256];
+    struct Move move_list_captures[256];
+
+    int num_moves = generate_moves(move_list_starting, pos_starting);
+    int num_moves_captures = generate_moves(move_list_captures, pos_captures);
+
+    printf("Legal moves in position 1:\n");
+    for (int i = 0; i < num_moves; ++i) {
+        print_move(move_list_starting[i], pos_starting);
+    }
+
+    printf("\nLegal moves in position 2\n");
+    for (int i = 0; i < num_moves_captures; ++i) {
+        print_move(move_list_captures[i], pos_captures);
+    }
 }

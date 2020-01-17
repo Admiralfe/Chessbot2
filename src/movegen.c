@@ -17,7 +17,7 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
     u64 our_rank7bb = (us == WHITE) ? Rank7BB : Rank2BB;
     u64 our_rank3bb = (us == WHITE) ? Rank3BB : Rank6BB;
 
-    u64 pawns = pos.pawns[us];
+    u64 pawns = pos.piece_bb[PAWN][us];
     u64 promotion_pawns = pawns & our_rank7bb;
 
     u64 promotion_targets = shift_bb(promotion_pawns, up) & ~pos_occupancy(pos);
@@ -87,7 +87,7 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
 
         //Opponent made double pawn push last move.
         //Check if any of our pawns attack the target square.
-        u64 ep_attackers = pos.pawns[us] & ep_attacker_squares;
+        u64 ep_attackers = pos.piece_bb[PAWN][us] & ep_attacker_squares;
 
         while (ep_attackers) {
             enum Square from = pop_lsb(&ep_attackers);
@@ -99,24 +99,57 @@ int generate_pawn_moves(struct Move* move_list, struct Position pos) {
     return number_of_moves;
 }
 
-int generate_sliding_attacks(struct Move *move_list, struct Position pos) {
-    enum Side us = pos.side_to_move;
+int generate_moves_pt(enum Piece_type pt, struct Move *move_list, const struct Position *pos) {
+    const enum Side us = pos->side_to_move;
+    u64 piece_squares = pos->piece_bb[pt][us];
 
-    //Queens
-    u64 queens_bb = pos.queens[us];
-    while (queens_bb) {
-        enum Square from = pop_lsb(&queens_bb);
-        u64 attacks = attacks_from(QUEEN, &pos, from) & ~pos.occupied_squares[us];
+    int num_moves_added = 0;
+    while (piece_squares) {
+        enum Square from = pop_lsb(&piece_squares);
+        u64 attacked_sqs = attacks_from(pt, pos, from) & ~pos->occupied_squares[us];
 
-        while (attacks) {
-            enum Square to = pop_lsb(&attacks);
+        while (attacked_sqs) {
+            enum Square to = pop_lsb(&attacked_sqs);
             *move_list++ = create_regular_move(from, to);
+            ++num_moves_added;
         }
     }
 
-    u64 bishops_bb = pos.bishops[us];
-    while (bishops_bb) {
-        enum Square from = pop_lsb(&bishops_bb);
+    //Check for castling
+    if (pt == KING) {
+        if (can_kingside_castle(us, pos)) {
+            enum Square from = (us == WHITE) ? e1 : e8;
+            enum Square to = (us == WHITE) ? g1 : g8;
+
+            *move_list++ = create_special_move(CASTLING, PT_NULL, from, to);
+            ++num_moves_added;
+        }
+
+        if (can_queenside_castle(us, pos)) {
+            enum Square from = (us == WHITE) ? e1 : e8;
+            enum Square to = (us == WHITE) ? c1 : c8;
+
+            *move_list++ = create_special_move(CASTLING, PT_NULL, from, to);
+            ++num_moves_added;
+        }
     }
+
+    return num_moves_added;
 }
 
+int generate_moves(struct Move *move_list, struct Position pos) {
+    int num_moves_added = 0;
+    int new_moves = 0;
+
+    for (int piece_t = KNIGHT; piece_t <= KING; ++piece_t) {
+        new_moves = generate_moves_pt(piece_t, move_list, &pos);
+
+        num_moves_added += new_moves;
+        move_list += new_moves;
+    }
+
+    new_moves = generate_pawn_moves(move_list, pos);
+    num_moves_added += new_moves;
+
+    return num_moves_added;
+}

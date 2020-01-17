@@ -8,6 +8,7 @@
 
 int main() {
     run_all_tests();
-    test_movegen_pawns();
+    test_castling_rights();
+    //test_movegen_pawns();
     return 0;
 }

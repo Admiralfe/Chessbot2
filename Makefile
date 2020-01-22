@@ -20,6 +20,8 @@ main.o: position.h bitboard.h types.h tests.h
 
 movegen.o: movegen.h attacks.h bitboard.h position.h types.h
 
+tables.o: tables.h types.h bitboard.h attacks.h
+
 .PHONY: clean
 clean:
 	rm -f $(obj) chessBot

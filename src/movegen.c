@@ -4,6 +4,7 @@
 #include "bitboard.h"
 #include "movegen.h"
 #include "position.h"
+#include "tables.h"
 #include "types.h"
 
 int generate_pawn_moves(struct Move* move_list, struct Position pos) {

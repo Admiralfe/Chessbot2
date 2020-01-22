@@ -11,5 +11,6 @@ void test_attacks_from();
 void test_movegen_pawns();
 void test_movegen();
 void test_castling_rights();
+void test_in_between_LUT();
 
 #endif

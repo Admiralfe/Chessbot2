@@ -57,5 +57,13 @@ static inline u64 pos_occupancy(struct Position pos) {
     return pos.occupied_squares[WHITE] | pos.occupied_squares[BLACK];
 }
 
+static inline enum Rank sq_rank(enum Square sq) {
+    return (enum Rank) sq / 8;
+}
+
+static inline enum File sq_file(enum Square sq) {
+    return (enum File) sq % 8;
+}
+
 struct Position pos_from_FEN(char *fen_str);
 #endif

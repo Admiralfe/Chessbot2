@@ -73,7 +73,7 @@ static inline enum Square msb(u64 bb) {
     return (enum Square) idx;
 }
 
-#endif //GCC  const Square s = lsb(*b);
+#endif //GCC defined
 
 static inline enum Square pop_lsb(u64 *bb) {
     enum Square sq = lsb(*bb);

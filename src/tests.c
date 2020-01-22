@@ -5,6 +5,7 @@
 #include "bitboard.h"
 #include "position.h"
 #include "movegen.h"
+#include "tables.h"
 #include "tests.h"
 #include "types.h"
 
@@ -15,6 +16,7 @@ void run_all_tests() {
     test_ray_attacks();
     test_attacks_from();
     test_movegen();
+    test_in_between_LUT();
 }
 
 void test_FEN() {
@@ -93,19 +95,19 @@ void test_attack_sets() {
 void test_ray_attacks() {
     fill_attack_rays();
 
-    assert(attack_rays[e4][NORTHEAST] == (set_bit(f5) | set_bit(g6) | set_bit(h7)));
-    assert(attack_rays[e4][NORTH] == (set_bit(e5) | set_bit(e6) | set_bit(e7) | set_bit(e8)));
-    assert(attack_rays[e4][EAST] == (set_bit(f4) | set_bit(g4) | set_bit(h4)));
-    assert(attack_rays[e4][SOUTHEAST] == (set_bit(f3) | set_bit(g2) | set_bit(h1)));
-    assert(attack_rays[e4][SOUTH] == (set_bit(e3) | set_bit(e2) | set_bit(e1)));
-    assert(attack_rays[e4][SOUTHWEST] == (set_bit(d3) | set_bit(c2) | set_bit(b1)));
-    assert(attack_rays[e4][WEST] == (set_bit(d4) | set_bit(c4) | set_bit(b4) | set_bit(a4)));
-    assert(attack_rays[e4][NORTHWEST] == (set_bit(d5) | set_bit(c6) | set_bit(b7) | set_bit(a8)));
+    assert((*attack_rays_ptr)[e4][NORTHEAST] == (set_bit(f5) | set_bit(g6) | set_bit(h7)));
+    assert((*attack_rays_ptr)[e4][NORTH] == (set_bit(e5) | set_bit(e6) | set_bit(e7) | set_bit(e8)));
+    assert((*attack_rays_ptr)[e4][EAST] == (set_bit(f4) | set_bit(g4) | set_bit(h4)));
+    assert((*attack_rays_ptr)[e4][SOUTHEAST] == (set_bit(f3) | set_bit(g2) | set_bit(h1)));
+    assert((*attack_rays_ptr)[e4][SOUTH] == (set_bit(e3) | set_bit(e2) | set_bit(e1)));
+    assert((*attack_rays_ptr)[e4][SOUTHWEST] == (set_bit(d3) | set_bit(c2) | set_bit(b1)));
+    assert((*attack_rays_ptr)[e4][WEST] == (set_bit(d4) | set_bit(c4) | set_bit(b4) | set_bit(a4)));
+    assert((*attack_rays_ptr)[e4][NORTHWEST] == (set_bit(d5) | set_bit(c6) | set_bit(b7) | set_bit(a8)));
 
-    assert(attack_rays[h8][NORTH] == 0ULL);
-    assert(attack_rays[a1][WEST] == 0ULL);
-    assert(attack_rays[b2][NORTHWEST] == set_bit(a3));
-    assert(attack_rays[g7][SOUTHEAST] == set_bit(h6));
+    assert((*attack_rays_ptr)[h8][NORTH] == 0ULL);
+    assert((*attack_rays_ptr)[a1][WEST] == 0ULL);
+    assert((*attack_rays_ptr)[b2][NORTHWEST] == set_bit(a3));
+    assert((*attack_rays_ptr)[g7][SOUTHEAST] == set_bit(h6));
 }
 
 void test_attacks_from() {
@@ -204,4 +206,23 @@ void test_movegen() {
     for (int i = 0; i < num_moves_captures; ++i) {
         print_move(move_list_captures[i], pos_captures);
     }
+}
+
+void test_in_between_LUT() {
+    fill_inbetween_LUT();
+
+    //Check symmetry
+    assert((*in_between_LUT_ptr)[e4][e1] == (*in_between_LUT_ptr)[e1][e4]);
+    assert((*in_between_LUT_ptr)[a1][g8] == (*in_between_LUT_ptr)[g8][a1]);
+
+    assert((*in_between_LUT_ptr)[c2][c5] == (set_bit(c3) | set_bit(c4)));
+    assert((*in_between_LUT_ptr)[a1][a8] == (set_bit(a2) | set_bit(a3) | set_bit(a4) | set_bit(a5) | set_bit(a6) | set_bit(a7)));
+    assert((*in_between_LUT_ptr)[e3][b3] == (set_bit(d3) | set_bit(c3)));
+    assert((*in_between_LUT_ptr)[g8][c4] == (set_bit(f7) | set_bit(e6) | set_bit(d5)));
+    assert((*in_between_LUT_ptr)[b5][e2] == (set_bit(c4) | set_bit(d3)));
+
+    assert((*in_between_LUT_ptr)[c3][g4] == 0ULL);
+    assert((*in_between_LUT_ptr)[f2][d7] == 0ULL);
+    assert((*in_between_LUT_ptr)[d4][d4] == 0ULL);
+    assert((*in_between_LUT_ptr)[a1][a2] == 0ULL);
 }

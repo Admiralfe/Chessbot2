@@ -115,6 +115,15 @@ struct Move create_special_move(enum Move_type type, enum Piece_type piece_type,
     return m;
 }
 
+/*
+    Takes a pseudo-legal move and checks for legality.
+    In practice, this mostly involves checking if the move leaves the king
+    in check and some other special cases.
+*/
+bool legal(struct Move m) {
+    //TODO
+}
+
 void init_pos_struct(struct Position *pos) {
     for (int piece_type = PAWN; piece_type <= KING; ++piece_type) {
         for (int side = 0; side < 2; ++side)

@@ -8,7 +8,9 @@
 
 int main() {
     run_all_tests();
-    test_castling_rights();
+    //test_castling_rights();
+    //test_attackers_to();
     //test_movegen_pawns();
+    //test_make_move();
     return 0;
 }

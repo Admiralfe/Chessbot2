@@ -12,5 +12,9 @@ void test_movegen_pawns();
 void test_movegen();
 void test_castling_rights();
 void test_in_between_LUT();
+void test_attackers_to();
+void test_make_move();
+void test_stack();
+
 
 #endif

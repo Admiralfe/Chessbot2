@@ -5,6 +5,7 @@
 #include "bitboard.h"
 #include "position.h"
 #include "movegen.h"
+#include "stack.h"
 #include "tables.h"
 #include "tests.h"
 #include "types.h"
@@ -17,6 +18,9 @@ void run_all_tests() {
     test_attacks_from();
     test_movegen();
     test_in_between_LUT();
+    test_attackers_to();
+    test_make_move();
+    test_stack();
 }
 
 void test_FEN() {
@@ -225,4 +229,106 @@ void test_in_between_LUT() {
     assert((*in_between_LUT_ptr)[f2][d7] == 0ULL);
     assert((*in_between_LUT_ptr)[d4][d4] == 0ULL);
     assert((*in_between_LUT_ptr)[a1][a2] == 0ULL);
+}
+
+void test_attackers_to() {
+    struct Position test_pos_1 = pos_from_FEN("1r1k2nr/3b1n2/3pp3/R4PR1/1N4N1/8/4P1B1/3QK3 b KQkq e6 0 1");
+    struct Position test_pos_2 = pos_from_FEN("4k1RQ/3PPP2/6B1/8/8/8/8/8 b - - 0 1");
+
+    print_bitboard(test_pos_2.piece_bb[PAWN][WHITE]);
+
+    u64 attacks_1 = attackers_to(d5, &test_pos_1);
+    assert(attacks_1 == (set_bit(a5) | set_bit(b4) | set_bit(d1) | set_bit(g2)));
+    print_bitboard(attacks_1);
+
+    u64 attacks_2 = attackers_to(e8, &test_pos_2);
+    assert(attacks_2 == (set_bit(d7) | set_bit(f7) | set_bit(g8)));
+    print_bitboard(attacks_2);
+}
+
+void test_make_move() {
+    MS_Stack *move_state_stk = stk_create(INIT_STACK_SIZE);
+    struct Position test_pos = pos_from_FEN("4k3/7p/8/3Pp3/5r2/8/3BQPN1/R3K2R w KQkq - 0 1");
+    const struct Move m1 = create_regular_move(g2, f4);
+    const struct Move m2 = create_special_move(CASTLING, PT_NULL, e1, g1); //Kingside castling
+    const struct Move m3 = create_special_move(CASTLING, PT_NULL, e1, b1); //Queenside castling
+    const struct Move m4 = create_special_move(ENPASSANT, PT_NULL, d5, e6); //EP capture
+    const struct Move m5 = create_regular_move(h7, h6);
+
+    assert(test_pos.side_to_move == WHITE);
+
+    make_move(m1, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[g2] == PIECE_EMPTY && test_pos.piece_list[f4] == WHITE_KNIGHT);
+    assert(test_pos.piece_bb[KNIGHT][WHITE] | set_bit(f4));
+    
+    assert(test_pos.side_to_move == BLACK);
+
+    unmake_move(m1, &test_pos, move_state_stk);
+    //Ensure the captured piece was restored correctly
+    assert(test_pos.piece_list[f4] == BLACK_ROOK);
+    assert(test_pos.piece_list[g2] == WHITE_KNIGHT);
+    assert(test_pos.piece_bb[KNIGHT][WHITE] | set_bit(g2));
+    
+    assert(test_pos.side_to_move == WHITE);
+
+    make_move(m2, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[g1] == WHITE_KING && test_pos.piece_list[f1] == WHITE_ROOK);
+    //Castling means you lose castling right in future moves
+    assert(test_pos.can_kingside_castle[WHITE] == false && test_pos.can_queenside_castle[WHITE] == false);
+    
+    assert(test_pos.side_to_move == BLACK);
+
+    unmake_move(m2, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[e1] == WHITE_KING && test_pos.piece_list[h1] == WHITE_ROOK);
+    assert(test_pos.can_kingside_castle[WHITE] == true && test_pos.can_queenside_castle[WHITE] == true);
+
+    assert(test_pos.side_to_move == WHITE);
+
+    make_move(m3, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[b1] == WHITE_KING && test_pos.piece_list[c1] == WHITE_ROOK);
+    assert(test_pos.can_kingside_castle[WHITE] == false && test_pos.can_queenside_castle[WHITE] == false);
+
+    assert(test_pos.side_to_move == BLACK);
+
+    make_move(m5, &test_pos, move_state_stk);
+
+    assert(test_pos.side_to_move == WHITE);
+
+    make_move(m4, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[e5] == PIECE_EMPTY); //Captured pawn
+    assert(test_pos.piece_list[d5] == PIECE_EMPTY);
+    assert(test_pos.piece_list[e6] == WHITE_PAWN);
+
+    assert(test_pos.side_to_move == BLACK);
+
+    unmake_move(m4, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[e5] == BLACK_PAWN);
+    assert(test_pos.piece_list[d5] == WHITE_PAWN);
+    assert(test_pos.piece_list[e6] == PIECE_EMPTY);
+
+    assert(test_pos.side_to_move == WHITE);
+    
+    unmake_move(m5, &test_pos, move_state_stk);
+    unmake_move(m3, &test_pos, move_state_stk);
+    assert(test_pos.piece_list[e1] == WHITE_KING);
+    assert(test_pos.piece_list[a1] == WHITE_ROOK);
+}
+
+void test_stack() {
+    MS_Stack* stack = stk_create(50);
+    assert(stk_empty(stack));
+    for (int i = 0; i < 100; ++i)  {
+        struct Move_state ms = {0};
+        ms.half_move_clock = i; // Use the half move clock to differentiate the different move structs in this test.
+        int res = stk_push(stack, &ms);
+        assert(res == 0);
+    }
+
+    for (int j = 99; j >= 0; --j) {
+        struct Move_state ms = stk_pop(stack);
+        assert(ms.half_move_clock == j);
+    }
+
+    assert(stk_empty(stack));
+    stk_destroy(stack);
 }

@@ -3,7 +3,10 @@
 
 #include <stdbool.h>
 
+#include "stack.h"
 #include "types.h"
+
+#define INIT_STACK_SIZE 256
 
 struct Position {
     //Bitboards for the pieces indexed by piece_type and side.
@@ -37,6 +40,18 @@ struct Move {
     bool castling;
 };
 
+// Struct used to restore info about the previous position that 
+// cannot be deduced from the Move and the current position when undoing moves.
+struct Move_state {
+    unsigned int half_move_clock;
+    enum Square ep_square;
+    bool can_castle[2];
+    enum Piece caputured_piece;
+};
+
+void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk);
+void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk);
+
 struct Move create_regular_move(enum Square from, enum Square to);
 struct Move create_special_move(enum Move_type type, enum Piece_type piece_type, enum Square from, enum Square to);
 
@@ -65,5 +80,6 @@ static inline enum File sq_file(enum Square sq) {
     return (enum File) sq % 8;
 }
 
+void pos_from_piece_list(struct Position *pos);
 struct Position pos_from_FEN(char *fen_str);
 #endif

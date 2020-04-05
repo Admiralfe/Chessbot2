@@ -55,6 +55,11 @@ static inline enum Piece_type to_piece_type(enum Piece p) {
     return (p == PIECE_EMPTY) ? PT_NULL : (p - 1) % 6;
 }
 
+static inline enum Piece to_colored_piece(enum Piece_type pt, enum Side color) {
+    const int offset = (color == WHITE) ? 1 : 7;
+    return pt + offset;
+}
+
 static inline enum Side piece_color(enum Piece p) {
     return (p <= WHITE_KING) ? WHITE : BLACK;
 }

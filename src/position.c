@@ -90,7 +90,7 @@ struct Move create_regular_move(enum Square from, enum Square to) {
     return m;
 }
 
-struct Move create_special_move(enum Move_type type, enum Piece_type piece_type, enum Square from, enum Square to) {
+struct Move create_special_move(enum Move_type type, enum Piece_type promotion_type, enum Square from, enum Square to) {
     struct Move m;
     m.from_sq = from;
     m.to_sq = to;
@@ -106,7 +106,7 @@ struct Move create_special_move(enum Move_type type, enum Piece_type piece_type,
             m.en_passant = true;
             break;
         case PROMOTION:
-            m.promotion_type = piece_type;
+            m.promotion_type = promotion_type;
             break;
         case NORMAL:
             break;
@@ -120,8 +120,113 @@ struct Move create_special_move(enum Move_type type, enum Piece_type piece_type,
     In practice, this mostly involves checking if the move leaves the king
     in check and some other special cases.
 */
-bool legal(struct Move m) {
-    //TODO
+bool legal(struct Move m, const struct Position *pos) {
+    //Is the king attacked after the move?
+}
+
+static void store_move_state(const struct Position *pos, struct Move m, MS_Stack *move_state_stack) {
+    //Store the irreversible state of this position to be able to unmake moves
+    struct Move_state ms = {0};
+    ms.half_move_clock = pos->half_move_clock;
+    ms.can_castle[WHITE] = pos->can_kingside_castle[WHITE] | pos->can_queenside_castle[WHITE];
+    ms.can_castle[BLACK] = pos->can_kingside_castle[BLACK] | pos->can_queenside_castle[BLACK];
+    ms.caputured_piece = pos->piece_list[m.to_sq];
+    ms.ep_square = pos->ep_square;
+    stk_push(move_state_stack, &ms);
+}
+
+void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
+    const enum Side us = pos->side_to_move;
+    const enum Piece moved_piece = pos->piece_list[m.from_sq];
+    const enum Piece_type moved_piece_type = to_piece_type(moved_piece);
+
+    store_move_state(pos, m, move_state_stk);
+
+    //If the king moves, the right to castle is lost.
+    if (moved_piece_type == KING) {
+        pos->can_kingside_castle[us] = false;
+        pos->can_queenside_castle[us] = false;
+    }
+
+    //If the move is a pawn move or a capture, the half-move clock (for the 50 move rule) is reset
+    if ((pos->piece_list[m.to_sq] != PIECE_EMPTY) || moved_piece_type == PAWN)
+        pos->half_move_clock = 0;
+    else //Otherwise, the half_move_clock is incremented by 1
+        ++pos->half_move_clock;
+
+    //All possible types of moves leave the from square empty.
+    pos->piece_list[m.from_sq] = PIECE_EMPTY;
+    if (m.castling) {
+        assert((set_bit(m.to_sq) & FileGBB) | (set_bit(m.to_sq) & FileBBB));
+        pos->piece_list[m.to_sq] = to_colored_piece(KING, us);
+        //Short castling
+        if (set_bit(m.to_sq) & FileGBB)
+            //Rook is always one to the right of king in short castling
+            pos->piece_list[m.to_sq - 1] = to_colored_piece(ROOK, us);
+        //Long castling
+        else 
+            //Rook is always one to the left of king in long castling
+            pos->piece_list[m.to_sq + 1] = to_colored_piece(ROOK, us);
+    }
+
+    else if (m.en_passant) {
+        pos->piece_list[m.to_sq] = to_colored_piece(PAWN, us);
+        //The captured pawn's square is either above or below the destination square, depending on side.
+        const int pawn_sq = (us == WHITE) ? m.to_sq - 8 : m.to_sq + 8;
+        pos->piece_list[pawn_sq] = PIECE_EMPTY;
+    }
+
+    else
+        pos->piece_list[m.to_sq] = moved_piece;
+
+    //Change the side to move
+    pos->side_to_move = abs(us - 1);
+
+    if (us == BLACK)
+        ++pos->fullmove_count;
+
+    pos_from_piece_list(pos);
+}
+
+void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
+    const enum Piece moved_piece = pos->piece_list[m.to_sq];
+    const struct Move_state prev_move_state = stk_pop(move_state_stk); // Move state with irreversible aspects of previous position
+    const enum Side moving_side = abs(pos->side_to_move - 1); // Side that made the move we are undoing now
+    const enum Side other_side = pos->side_to_move;
+
+    //Restore potential captured piece, or empty square
+    pos->piece_list[m.to_sq] = prev_move_state.caputured_piece;
+
+    if (m.castling) {
+        pos->piece_list[m.from_sq] = to_colored_piece(KING, moving_side);
+        //Kingside castling
+        if (m.to_sq & FileGBB)
+            //3 squares to the right of the king square is the rook in short castling
+            pos->piece_list[m.from_sq + 3] = to_colored_piece(ROOK, moving_side);
+        //Queenside castling
+        else
+            //4 squares to the left of the king is the rook in long castling
+            pos->piece_list[m.from_sq - 4] = to_colored_piece(ROOK, moving_side);
+    }
+
+    else if (m.en_passant) {
+        pos->piece_list[m.from_sq] = to_colored_piece(PAWN, moving_side);
+        const int offset = (moving_side == WHITE) ? -8 : 8; 
+        //In en passant moves, one pawn will have been captured above the to_square
+        pos->piece_list[m.to_sq + offset] = to_colored_piece(PAWN, other_side);
+    }
+    else
+        pos->piece_list[m.from_sq] = moved_piece;
+
+    pos->half_move_clock = prev_move_state.half_move_clock;
+    pos->ep_square = prev_move_state.ep_square;
+    pos->can_kingside_castle[WHITE] = prev_move_state.can_castle[WHITE];
+    pos->can_queenside_castle[WHITE] = prev_move_state.can_castle[WHITE];
+    pos->can_kingside_castle[BLACK] = prev_move_state.can_castle[BLACK];
+    pos->can_queenside_castle[BLACK] = prev_move_state.can_castle[BLACK];
+    pos->side_to_move = abs(pos->side_to_move - 1);
+    
+    pos_from_piece_list(pos);
 }
 
 void init_pos_struct(struct Position *pos) {

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -7,6 +8,22 @@
 #include "position.h"
 #include "tables.h"
 #include "types.h"
+
+u64 attackers_to(enum Square sq, const struct Position *pos) {
+    const enum Side us = pos->side_to_move;
+    const enum Side them = abs(us - 1);
+    u64 attackers = 0ULL;
+
+    attackers |= (attack_set.pawn[us][sq] & pos->piece_bb[PAWN][them]);
+    attackers |= (attack_set.knight[sq] & pos->piece_bb[KNIGHT][them]);
+    attackers |= (attack_set.king[sq] & pos->piece_bb[KING][them]);
+    attackers |= (attacks_from(ROOK, pos, sq) & pos->piece_bb[ROOK][them]);
+    attackers |= (attacks_from(BISHOP, pos, sq) & pos->piece_bb[BISHOP][them]);
+    attackers |= (attacks_from(QUEEN, pos, sq) & pos->piece_bb[QUEEN][them]);
+
+    attackers &= pos->occupied_squares[them];
+    return attackers;
+}
 
 u64 knight_attacks(enum Square sq) {
     u64 bb = set_bit(sq);

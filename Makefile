@@ -12,9 +12,11 @@ attacks.o: attacks.h position.h types.h
 
 bitboard.o: bitboard.h types.h
 
-position.o: position.h types.h bitboard.h
+position.o: position.h types.h bitboard.h stack.h
 
-tests.o: attacks.h movegen.h tests.h position.h types.h bitboard.h
+stack.o: stack.h
+
+tests.o: attacks.h movegen.h tests.h position.h types.h bitboard.h stack.h
 
 main.o: position.h bitboard.h types.h tests.h
 

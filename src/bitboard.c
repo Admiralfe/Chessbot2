@@ -32,7 +32,7 @@ void print_bitboard(u64 bitboard) {
     int i = 0;
     for (int row = 7; row >= 0; --row) {
         for (int col = 0; col < 8; ++col) {
-            bb_str[i] = is_set(bitboard, 8*row + col) ? '1' : '.';
+            bb_str[i] = is_set(8*row + col, bitboard) ? '1' : '.';
             ++i;
         }
         bb_str[i] = '\n';

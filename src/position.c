@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
 #include "types.h"
@@ -20,6 +21,15 @@ const char *square_name_LUT[] = {
     "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
+};
+
+const char *piece_name_LUT[] = {
+    "Empty square", "White Pawn", "White Knight", "White Bishop", "White Rook", "White Queen", "White King",
+    "Black Pawn", "Black Knight", "Black Bishop", "Black Rook", "Black Queen", "Black King",
+};
+
+const char *piece_type_name_LUT[] = {
+    "Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Null"
 };
 
 //Array used to get pieces by index. Indexing this array using the Piece enum gives
@@ -57,21 +67,25 @@ enum Piece char_to_piece(char c) {
     }
 }
 
+static enum Side other_side(enum Side s) {
+    return abs(s - 1);
+}
+
 enum Square make_square(enum Rank r, enum File f) {
     return (enum Square) r * 8 + f;
 }
 
-void print_position(struct Position position) {
+void print_position(const struct Position *position) {
     char pos_str[1024];
 
     int idx = 0;
 
     idx += snprintf(pos_str, 1024 - idx, "\n +---+---+---+---+---+---+---+---+\n"); 
 
-    for (int rank = RANK_1; rank <= RANK_8; ++rank) {
+    for (int rank = RANK_8; rank >= RANK_1; --rank) {
         for (int file = FILE_A; file <= FILE_H; ++file  ) {
             idx += snprintf(&pos_str[idx], 1024 - idx, 
-                            "   %c", piece_to_char[get_piece(position, make_square(rank, file))]);
+                            "   %c", piece_to_char[get_piece(*position, make_square(rank, file))]);
         }
         idx += snprintf(&pos_str[idx], 1024 - idx, "\n +---+---+---+---+---+---+---+---+\n");
     }
@@ -115,13 +129,47 @@ struct Move create_special_move(enum Move_type type, enum Piece_type promotion_t
     return m;
 }
 
+static struct Move reverse(struct Move move) {
+    struct Move reversed = {0};
+    reversed.to_sq = move.from_sq;
+    reversed.from_sq = move.to_sq;
+    return reversed;
+}
+
 /*
     Takes a pseudo-legal move and checks for legality.
     In practice, this mostly involves checking if the move leaves the king
     in check and some other special cases.
 */
-bool legal(struct Move m, const struct Position *pos) {
+bool legal(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
+    const enum Side us = pos->side_to_move;
+    const enum Square king_square = lsb(pos->piece_bb[KING][pos->side_to_move]);
     //Is the king attacked after the move?
+    make_move(m, pos, move_state_stk);
+    const u64 king_attackers = attackers_to(king_square, pos, us);
+    unmake_move(m, pos, move_state_stk);
+    if (king_attackers)
+        return false;
+
+    //Only other possibility for a move to not be legal, is if the move is castling, and the king passes through check when castling.
+    //We already checked if the king's destination square is attacked, so is sufficient to check the passed through square.
+    if (m.castling) {
+        //Kingside castling
+        if (set_bit(m.to_sq) & FileGBB) {
+            const enum Square passed_square = (us == WHITE) ? f1 : f8;
+            if (attackers_to(passed_square, pos, us))
+                return false;
+        }
+        //Queenside castling
+        else if (set_bit(m.to_sq) & FileBBB) {
+            const enum Square passed_square_d = (us == WHITE) ? d1 : d8;
+            const enum Square passed_square_c = (us == WHITE) ? c1 : c8;
+            if (attackers_to(passed_square_d, pos, us) != 0ULL || attackers_to(passed_square_c, pos, us) != 0ULL)
+                return false;
+        }
+    }
+
+    return true;
 }
 
 static void store_move_state(const struct Position *pos, struct Move m, MS_Stack *move_state_stack) {
@@ -130,15 +178,50 @@ static void store_move_state(const struct Position *pos, struct Move m, MS_Stack
     ms.half_move_clock = pos->half_move_clock;
     ms.can_castle[WHITE] = pos->can_kingside_castle[WHITE] | pos->can_queenside_castle[WHITE];
     ms.can_castle[BLACK] = pos->can_kingside_castle[BLACK] | pos->can_queenside_castle[BLACK];
-    ms.caputured_piece = pos->piece_list[m.to_sq];
+    ms.captured_piece = pos->piece_list[m.to_sq];
     ms.ep_square = pos->ep_square;
     stk_push(move_state_stack, &ms);
 }
 
+static void clear_square(enum Square sq, struct Position *pos) {
+    assert(pos->piece_list[sq] != PIECE_EMPTY);
+    const enum Piece cleared_piece = pos->piece_list[sq];
+    const enum Side us = piece_color(cleared_piece);
+    const enum Piece_type cleared_piece_type = to_piece_type(cleared_piece);
+    pos->piece_list[sq] = PIECE_EMPTY;
+    pos->piece_bb[cleared_piece_type][us] ^= set_bit(sq);
+    pos->occupied_squares[us] ^= set_bit(sq);
+}
+
+static void place_piece(enum Square sq, enum Piece piece, struct Position *pos) {
+    const enum Piece_type piece_type = to_piece_type(piece);
+    const enum Side us = piece_color(piece);
+    const enum Side them = abs(us - 1);
+    const u64 sq_bb = set_bit(sq);
+    pos->piece_list[sq] = piece;
+    pos->piece_bb[piece_type][us] |= sq_bb;
+    
+    //The bitboards for the opponents side need to have the bit unset, since any piece that was there would have been captured.
+    for (enum Piece_type pt = PAWN; pt <= KING; ++pt)
+        if (is_set(sq, pos->piece_bb[pt][them]))
+            pos->piece_bb[pt][them] ^= sq_bb;
+    
+    pos->occupied_squares[us] |= sq_bb;
+    if (is_set(sq, pos->occupied_squares[them]))
+        pos->occupied_squares[them] ^= sq_bb;
+}
+
+static void move_piece(struct Move m, struct Position *pos) {
+    const enum Piece moved_piece = pos->piece_list[m.from_sq];
+    clear_square(m.from_sq, pos);
+    place_piece(m.to_sq, moved_piece, pos);
+}
+
 void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
-    const enum Side us = pos->side_to_move;
+    assert(piece_color(pos->piece_list[m.from_sq]) == pos->side_to_move);
     const enum Piece moved_piece = pos->piece_list[m.from_sq];
     const enum Piece_type moved_piece_type = to_piece_type(moved_piece);
+    const enum Side us = pos->side_to_move;
 
     store_move_state(pos, m, move_state_stk);
 
@@ -154,69 +237,68 @@ void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
     else //Otherwise, the half_move_clock is incremented by 1
         ++pos->half_move_clock;
 
-    //All possible types of moves leave the from square empty.
-    pos->piece_list[m.from_sq] = PIECE_EMPTY;
+    //Move the piece in the position, updating bitboards and such as well.
+    //This will take care of everything for regular moves, but moves like EP and castling will need extra steps (since not only a single piece is moved...)
+    move_piece(m, pos);
+
     if (m.castling) {
         assert((set_bit(m.to_sq) & FileGBB) | (set_bit(m.to_sq) & FileBBB));
-        pos->piece_list[m.to_sq] = to_colored_piece(KING, us);
         //Short castling
         if (set_bit(m.to_sq) & FileGBB)
             //Rook is always one to the right of king in short castling
-            pos->piece_list[m.to_sq - 1] = to_colored_piece(ROOK, us);
+            place_piece(m.to_sq - 1, to_colored_piece(ROOK, us), pos);
         //Long castling
-        else 
+        else
             //Rook is always one to the left of king in long castling
-            pos->piece_list[m.to_sq + 1] = to_colored_piece(ROOK, us);
+            place_piece(m.to_sq + 1, to_colored_piece(ROOK, us), pos);
     }
 
     else if (m.en_passant) {
-        pos->piece_list[m.to_sq] = to_colored_piece(PAWN, us);
-        //The captured pawn's square is either above or below the destination square, depending on side.
+        //In EP, the captured pawn is neither on the source or the destination square for the move.
+        //So we need to clear the captured pawn "manually"
         const int pawn_sq = (us == WHITE) ? m.to_sq - 8 : m.to_sq + 8;
-        pos->piece_list[pawn_sq] = PIECE_EMPTY;
+        clear_square(pawn_sq, pos);
     }
-
-    else
-        pos->piece_list[m.to_sq] = moved_piece;
-
+    
     //Change the side to move
-    pos->side_to_move = abs(us - 1);
+    pos->side_to_move = other_side(pos->side_to_move);
 
     if (us == BLACK)
         ++pos->fullmove_count;
-
-    pos_from_piece_list(pos);
 }
 
 void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
-    const enum Piece moved_piece = pos->piece_list[m.to_sq];
     const struct Move_state prev_move_state = stk_pop(move_state_stk); // Move state with irreversible aspects of previous position
     const enum Side moving_side = abs(pos->side_to_move - 1); // Side that made the move we are undoing now
-    const enum Side other_side = pos->side_to_move;
+    const enum Side other_side_ = pos->side_to_move;
+    const enum Piece moved_piece = pos->piece_list[m.to_sq];
 
     //Restore potential captured piece, or empty square
-    pos->piece_list[m.to_sq] = prev_move_state.caputured_piece;
+    if (prev_move_state.captured_piece != PIECE_EMPTY)
+        place_piece(m.to_sq, prev_move_state.captured_piece, pos);
+    else
+        clear_square(m.to_sq, pos);
+    
 
     if (m.castling) {
-        pos->piece_list[m.from_sq] = to_colored_piece(KING, moving_side);
+        place_piece(m.from_sq, to_colored_piece(KING, moving_side), pos);
         //Kingside castling
-        if (m.to_sq & FileGBB)
+        if (set_bit(m.to_sq) & FileGBB)
             //3 squares to the right of the king square is the rook in short castling
-            pos->piece_list[m.from_sq + 3] = to_colored_piece(ROOK, moving_side);
+            place_piece(m.from_sq + 3, to_colored_piece(ROOK, moving_side), pos);
         //Queenside castling
         else
             //4 squares to the left of the king is the rook in long castling
-            pos->piece_list[m.from_sq - 4] = to_colored_piece(ROOK, moving_side);
+            place_piece(m.from_sq - 4, to_colored_piece(ROOK, moving_side), pos);
     }
 
     else if (m.en_passant) {
-        pos->piece_list[m.from_sq] = to_colored_piece(PAWN, moving_side);
         const int offset = (moving_side == WHITE) ? -8 : 8; 
         //In en passant moves, one pawn will have been captured above the to_square
-        pos->piece_list[m.to_sq + offset] = to_colored_piece(PAWN, other_side);
+        place_piece(m.to_sq + offset, to_colored_piece(PAWN, other_side_), pos);
     }
-    else
-        pos->piece_list[m.from_sq] = moved_piece;
+
+    place_piece(m.from_sq, moved_piece, pos);
 
     pos->half_move_clock = prev_move_state.half_move_clock;
     pos->ep_square = prev_move_state.ep_square;
@@ -224,9 +306,7 @@ void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) 
     pos->can_queenside_castle[WHITE] = prev_move_state.can_castle[WHITE];
     pos->can_kingside_castle[BLACK] = prev_move_state.can_castle[BLACK];
     pos->can_queenside_castle[BLACK] = prev_move_state.can_castle[BLACK];
-    pos->side_to_move = abs(pos->side_to_move - 1);
-    
-    pos_from_piece_list(pos);
+    pos->side_to_move = other_side(pos->side_to_move);
 }
 
 void init_pos_struct(struct Position *pos) {

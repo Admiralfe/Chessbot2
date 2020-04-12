@@ -42,7 +42,7 @@ static inline u64 shift_SW(u64 bitboard) { return (bitboard & ~FileABB) >> 9; }
 
 static inline u64 set_bit(enum Square s) { return 1ULL << s; }
 
-static inline bool is_set(u64 bitboard, enum Square s) { return (bitboard & (1ULL << s)) != 0; }
+static inline bool is_set(enum Square s, u64 bitboard) { return (bitboard & (set_bit(s))) != 0; }
 
 #if defined(__GNUC__) //GCC, Clang, ICC
 

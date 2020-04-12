@@ -12,5 +12,6 @@ int main() {
     //test_attackers_to();
     //test_movegen_pawns();
     //test_make_move();
+    //test_legal_move_check();
     return 0;
 }

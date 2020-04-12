@@ -46,7 +46,7 @@ struct Move_state {
     unsigned int half_move_clock;
     enum Square ep_square;
     bool can_castle[2];
-    enum Piece caputured_piece;
+    enum Piece captured_piece;
 };
 
 void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk);
@@ -55,11 +55,13 @@ void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk);
 struct Move create_regular_move(enum Square from, enum Square to);
 struct Move create_special_move(enum Move_type type, enum Piece_type piece_type, enum Square from, enum Square to);
 
+bool legal(struct Move m, struct Position *pos, MS_Stack *move_state_stk);
+
 //Prints a move in the given notation in algebraic notation.
 void print_move(struct Move move, struct Position pos);
 
 //Prints a simple ASCII representation of the position.
-void print_position(struct Position position);
+void print_position(const struct Position *position);
 
 bool can_kingside_castle(enum Side side, const struct Position *pos);
 bool can_queenside_castle(enum Side side, const struct Position *pos);

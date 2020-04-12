@@ -12,7 +12,7 @@ attacks.o: attacks.h position.h types.h
 
 bitboard.o: bitboard.h types.h
 
-position.o: position.h types.h bitboard.h stack.h
+position.o: position.h types.h bitboard.h stack.h attacks.h
 
 stack.o: stack.h
 

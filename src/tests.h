@@ -15,6 +15,7 @@ void test_in_between_LUT();
 void test_attackers_to();
 void test_make_move();
 void test_stack();
+void test_legal_move_check();
 
 
 #endif

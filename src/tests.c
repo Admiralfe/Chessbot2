@@ -11,6 +11,7 @@
 #include "types.h"
 
 void run_all_tests() {
+    init_LUTs();
     test_FEN();
     test_bitshifts();
     test_attack_sets();
@@ -21,6 +22,7 @@ void run_all_tests() {
     test_attackers_to();
     test_make_move();
     test_stack();
+    test_legal_move_check();
 }
 
 void test_FEN() {
@@ -123,7 +125,7 @@ void test_attacks_from() {
     u64 attacks_bishop = attacks_from(BISHOP, &pos, c5);
     u64 attacks_rook = attacks_from(ROOK, &pos, f1);
 
-    print_position(pos);
+    print_position(&pos);
 
     printf("Queen attacks\n");
     print_bitboard(attacks_queen);
@@ -232,18 +234,78 @@ void test_in_between_LUT() {
 }
 
 void test_attackers_to() {
+    init_LUTs();
     struct Position test_pos_1 = pos_from_FEN("1r1k2nr/3b1n2/3pp3/R4PR1/1N4N1/8/4P1B1/3QK3 b KQkq e6 0 1");
     struct Position test_pos_2 = pos_from_FEN("4k1RQ/3PPP2/6B1/8/8/8/8/8 b - - 0 1");
-
-    print_bitboard(test_pos_2.piece_bb[PAWN][WHITE]);
-
-    u64 attacks_1 = attackers_to(d5, &test_pos_1);
-    assert(attacks_1 == (set_bit(a5) | set_bit(b4) | set_bit(d1) | set_bit(g2)));
+    struct Position test_pos_3 = pos_from_FEN("5k2/8/8/8/2q2r2/7b/3n2p1/1q3K2 w - - 0 1");
+    const enum Side side1 = test_pos_1.side_to_move;
+    const enum Side side2 = test_pos_2.side_to_move;
+    const enum Side side3 = test_pos_3.side_to_move;
+    u64 attacks_1 = attackers_to(d5, &test_pos_1, side1);
     print_bitboard(attacks_1);
+    assert(attacks_1 == (set_bit(a5) | set_bit(b4) | set_bit(d1) | set_bit(g2)));
 
-    u64 attacks_2 = attackers_to(e8, &test_pos_2);
-    assert(attacks_2 == (set_bit(d7) | set_bit(f7) | set_bit(g8)));
+    u64 attacks_2 = attackers_to(e8, &test_pos_2, side2);
     print_bitboard(attacks_2);
+    assert(attacks_2 == (set_bit(d7) | set_bit(f7) | set_bit(g8)));
+
+    u64 attacks_3 = attackers_to(f1, &test_pos_3, side3);
+    print_bitboard(attacks_3);
+    assert(attacks_3 == (set_bit(b1) | set_bit(c4) | set_bit(d2) | set_bit(g2) | set_bit(f4)));
+}
+
+static bool bitboard_piece_list_consistent(const struct Position *pos) {
+    printf("Testing bitboard consistency...\n\n");
+    for (int sq = 0; sq < 64; ++sq) {
+        printf("Testing square %s\n", square_name_LUT[sq]);
+        if (pos->piece_list[sq] == PIECE_EMPTY) {
+            printf("Square is empty\n");
+            //Check that the occupancy bb does not have the bit set
+            if (is_set(sq, pos->occupied_squares[WHITE]))
+                return false;
+            printf("Square passed occupancy\n");
+            //Check that all the piece bitboards are empty there
+            for (enum Piece_type pt = PAWN; pt <= KING; ++pt) {
+                if (is_set(sq, pos->piece_bb[pt][WHITE]) || is_set(sq, pos->piece_bb[pt][BLACK]))
+                    return false;
+            }
+
+            printf("Square passed piece bitboards\n\n");
+        }
+
+        else {
+            const enum Piece piece = pos->piece_list[sq];
+            const enum Piece_type piece_type = to_piece_type(piece);
+            const enum Side color = piece_color(piece);
+            const enum Side other_side_color = abs(color - 1);
+            
+            printf("Square has piece %s on it\n", piece_name_LUT[piece]);
+            //Check that the occupancy bitboard is set for the right side.
+            if (!is_set(sq, pos->occupied_squares[color]) || is_set(sq, pos->occupied_squares[other_side_color]))
+                return false;
+            printf("Passed occupancy\n");
+            
+            //Check that the bitboard for the piece is set
+            if (!is_set(sq, pos->piece_bb[piece_type][color]))
+                return false;
+            printf("Passed piece bb bit set check\n");
+
+            //All other bitboards should have that bit unset.
+            if (is_set(sq, pos->piece_bb[piece_type][other_side_color]))
+                return false;
+            printf("Passed other color bit unset check\n");
+
+            for (enum Piece_type pt_idx = PAWN; pt_idx <= KING; ++pt_idx) {
+                if (pt_idx != piece_type)
+                    if (is_set(sq, pos->piece_bb[pt_idx][WHITE]) || is_set(sq, pos->piece_bb[pt_idx][BLACK]))
+                        return false;
+            }
+
+            printf("Passed other piece type bits unset\n\n");
+        }
+    }
+
+    return true;
 }
 
 void test_make_move() {
@@ -255,60 +317,59 @@ void test_make_move() {
     const struct Move m4 = create_special_move(ENPASSANT, PT_NULL, d5, e6); //EP capture
     const struct Move m5 = create_regular_move(h7, h6);
 
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == WHITE);
 
     make_move(m1, &test_pos, move_state_stk);
     assert(test_pos.piece_list[g2] == PIECE_EMPTY && test_pos.piece_list[f4] == WHITE_KNIGHT);
-    assert(test_pos.piece_bb[KNIGHT][WHITE] | set_bit(f4));
-    
+    assert(bitboard_piece_list_consistent(&test_pos));    
     assert(test_pos.side_to_move == BLACK);
 
     unmake_move(m1, &test_pos, move_state_stk);
     //Ensure the captured piece was restored correctly
     assert(test_pos.piece_list[f4] == BLACK_ROOK);
     assert(test_pos.piece_list[g2] == WHITE_KNIGHT);
-    assert(test_pos.piece_bb[KNIGHT][WHITE] | set_bit(g2));
-    
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == WHITE);
 
     make_move(m2, &test_pos, move_state_stk);
     assert(test_pos.piece_list[g1] == WHITE_KING && test_pos.piece_list[f1] == WHITE_ROOK);
     //Castling means you lose castling right in future moves
     assert(test_pos.can_kingside_castle[WHITE] == false && test_pos.can_queenside_castle[WHITE] == false);
-    
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == BLACK);
 
     unmake_move(m2, &test_pos, move_state_stk);
     assert(test_pos.piece_list[e1] == WHITE_KING && test_pos.piece_list[h1] == WHITE_ROOK);
     assert(test_pos.can_kingside_castle[WHITE] == true && test_pos.can_queenside_castle[WHITE] == true);
-
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == WHITE);
 
     make_move(m3, &test_pos, move_state_stk);
     assert(test_pos.piece_list[b1] == WHITE_KING && test_pos.piece_list[c1] == WHITE_ROOK);
     assert(test_pos.can_kingside_castle[WHITE] == false && test_pos.can_queenside_castle[WHITE] == false);
-
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == BLACK);
 
     make_move(m5, &test_pos, move_state_stk);
-
     assert(test_pos.side_to_move == WHITE);
 
     make_move(m4, &test_pos, move_state_stk);
     assert(test_pos.piece_list[e5] == PIECE_EMPTY); //Captured pawn
     assert(test_pos.piece_list[d5] == PIECE_EMPTY);
     assert(test_pos.piece_list[e6] == WHITE_PAWN);
-
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == BLACK);
 
     unmake_move(m4, &test_pos, move_state_stk);
     assert(test_pos.piece_list[e5] == BLACK_PAWN);
     assert(test_pos.piece_list[d5] == WHITE_PAWN);
     assert(test_pos.piece_list[e6] == PIECE_EMPTY);
-
+    assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == WHITE);
     
     unmake_move(m5, &test_pos, move_state_stk);
+    assert(bitboard_piece_list_consistent(&test_pos));
     unmake_move(m3, &test_pos, move_state_stk);
     assert(test_pos.piece_list[e1] == WHITE_KING);
     assert(test_pos.piece_list[a1] == WHITE_ROOK);
@@ -331,4 +392,21 @@ void test_stack() {
 
     assert(stk_empty(stack));
     stk_destroy(stack);
+}
+
+void test_legal_move_check() {
+    init_LUTs();
+    struct Position pos1 = pos_from_FEN("3kr3/8/8/q7/7B/6n1/3PR3/R3K2R w KQkq - 0 1");
+    const struct Move mov1 = create_regular_move(d2, d4);
+    const struct Move mov2 = create_regular_move(e2, e6);
+    const struct Move mov3 = create_regular_move(e2, f2);
+    const struct Move mov4 = create_special_move(CASTLING, PT_NULL, e1, g1);
+    const struct Move mov5 = create_special_move(CASTLING, PT_NULL, e1, b1);
+
+    MS_Stack *move_state_stk = stk_create(64);
+    assert(!legal(mov1, &pos1, move_state_stk)); //The pawn is pinned
+    assert(legal(mov2, &pos1, move_state_stk)); //Rook moves along the same line as the attacker to the king
+    assert(!legal(mov3, &pos1, move_state_stk)); //Rook is pinned, and moves so that the king is under attack
+    assert(!legal(mov4, &pos1, move_state_stk)); //Kingside castling prohibited since king passes through check
+    assert(legal(mov5, &pos1, move_state_stk)); //Queenside castling not blocked.
 }

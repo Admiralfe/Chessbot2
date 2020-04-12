@@ -19,7 +19,9 @@ enum Square {
 };
 
 //Used to convert from the square number to the squares name in algebraic notation.
-extern const char *square_name_LUT[];
+extern const char* square_name_LUT[];
+extern const char* piece_name_LUT[];
+extern const char* piece_type_name_LUT[]; 
 
 enum Rank {
     RANK_1, RANK_2, RANK_3, RANK_4,
@@ -57,7 +59,7 @@ static inline enum Piece_type to_piece_type(enum Piece p) {
 
 static inline enum Piece to_colored_piece(enum Piece_type pt, enum Side color) {
     const int offset = (color == WHITE) ? 1 : 7;
-    return pt + offset;
+    return (pt == PT_NULL) ? PIECE_EMPTY : pt + offset;
 }
 
 static inline enum Side piece_color(enum Piece p) {

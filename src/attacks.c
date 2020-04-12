@@ -9,8 +9,7 @@
 #include "tables.h"
 #include "types.h"
 
-u64 attackers_to(enum Square sq, const struct Position *pos) {
-    const enum Side us = pos->side_to_move;
+u64 attackers_to(enum Square sq, const struct Position *pos, enum Side us) {
     const enum Side them = abs(us - 1);
     u64 attackers = 0ULL;
 
@@ -20,7 +19,6 @@ u64 attackers_to(enum Square sq, const struct Position *pos) {
     attackers |= (attacks_from(ROOK, pos, sq) & pos->piece_bb[ROOK][them]);
     attackers |= (attacks_from(BISHOP, pos, sq) & pos->piece_bb[BISHOP][them]);
     attackers |= (attacks_from(QUEEN, pos, sq) & pos->piece_bb[QUEEN][them]);
-
     attackers &= pos->occupied_squares[them];
     return attackers;
 }

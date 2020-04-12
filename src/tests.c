@@ -148,9 +148,9 @@ void test_movegen_pawns() {
     struct Move move_list2[256];
     struct Move move_list_prom[256];
  
-    int num_moves = generate_pawn_moves(move_list, pos);
-    int num_moves2 = generate_pawn_moves(move_list2, pos2);
-    int num_moves_prom = generate_pawn_moves(move_list_prom, pos_promotions);
+    int num_moves = generate_pawn_moves(move_list, &pos);
+    int num_moves2 = generate_pawn_moves(move_list2, &pos2);
+    int num_moves_prom = generate_pawn_moves(move_list_prom, &pos_promotions);
 
     printf("Moves in position 1:\n");
     for (int i = 0; i < num_moves; ++i)
@@ -200,8 +200,8 @@ void test_movegen() {
     struct Move move_list_starting[256];
     struct Move move_list_captures[256];
 
-    int num_moves = generate_moves(move_list_starting, pos_starting);
-    int num_moves_captures = generate_moves(move_list_captures, pos_captures);
+    int num_moves = generate_moves(move_list_starting, &pos_starting);
+    int num_moves_captures = generate_moves(move_list_captures, &pos_captures);
 
     printf("Legal moves in position 1:\n");
     for (int i = 0; i < num_moves; ++i) {

@@ -71,7 +71,7 @@ u64 negative_ray_attacks(u64 occupancy, enum Direction dir, enum Square sq) {
 }
 
 u64 attacks_from(enum Piece_type pt, const struct Position *pos, enum Square sq) {
-    u64 occupancy = pos_occupancy(*pos);
+    u64 occupancy = pos_occupancy(pos);
     switch (pt) {
         case ROOK:
             return positive_ray_attacks(occupancy, NORTH, sq) |

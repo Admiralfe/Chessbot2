@@ -70,8 +70,8 @@ static inline enum Piece get_piece(struct Position p, enum Square s) {
     return p.piece_list[s];
 }
 
-static inline u64 pos_occupancy(struct Position pos) {
-    return pos.occupied_squares[WHITE] | pos.occupied_squares[BLACK];
+static inline u64 pos_occupancy(const struct Position *pos) {
+    return pos->occupied_squares[WHITE] | pos->occupied_squares[BLACK];
 }
 
 static inline enum Rank sq_rank(enum Square sq) {

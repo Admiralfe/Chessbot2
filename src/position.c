@@ -491,7 +491,7 @@ void print_move(struct Move move, struct Position pos) {
 
     //If the target square intersects with any of the pieces, or the move is en passant
     //the move is a capture.
-    if ((set_bit(move.to_sq) & pos_occupancy(pos)) || move.en_passant) {
+    if ((set_bit(move.to_sq) & pos_occupancy(&pos)) || move.en_passant) {
         printf("%sx%s", square_name_LUT[move.from_sq], square_name_LUT[move.to_sq]);
     }
 
@@ -523,13 +523,13 @@ void print_move(struct Move move, struct Position pos) {
 }
 
 static bool queenside_castling_impeded(enum Side side, const struct Position *pos) {
-    return (side == WHITE) ? pos_occupancy(*pos) & (set_bit(b1) | set_bit(c1) | set_bit(d1)) :
-                             pos_occupancy(*pos) & (set_bit(b8) | set_bit(c8) | set_bit(d8));
+    return (side == WHITE) ? pos_occupancy(pos) & (set_bit(b1) | set_bit(c1) | set_bit(d1)) :
+                             pos_occupancy(pos) & (set_bit(b8) | set_bit(c8) | set_bit(d8));
 }
 
 static bool kingside_castling_impeded(enum Side side, const struct Position *pos) {
-    return (side == WHITE) ? pos_occupancy(*pos) & (set_bit(f1) | set_bit(g1)) : 
-                             pos_occupancy(*pos) & (set_bit(f8) | set_bit(g8));
+    return (side == WHITE) ? pos_occupancy(pos) & (set_bit(f1) | set_bit(g1)) : 
+                             pos_occupancy(pos) & (set_bit(f8) | set_bit(g8));
 }
 
 bool can_kingside_castle(enum Side side, const struct Position *pos) {

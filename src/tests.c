@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "attacks.h"
 #include "bitboard.h"
@@ -11,18 +12,32 @@
 #include "types.h"
 
 void run_all_tests() {
+    printf("Starting tests...\n");
     init_LUTs();
+    printf("LUT initialization passed\n");
     test_FEN();
+    printf("FEN passed\n");
     test_bitshifts();
+    printf("Bitshift test passed\n");
     test_attack_sets();
+    printf("Attack sets test passed\n");
     test_ray_attacks();
+    printf("Ray attacks test passed\n");
     test_attacks_from();
+    printf("Attacks_from test passed\n");
     test_movegen();
+    printf("Move generation test passed\n");
     test_in_between_LUT();
+    printf("in_between_LUT test passed\n");
     test_attackers_to();
+    printf("attackers_to test passed\n");
     test_make_move();
+    printf("make / unmake move test passed\n");
     test_stack();
+    printf("Stack test passed\n");
     test_legal_move_check();
+    printf("Legal move check test passed\n");
+    printf("All tests passed!\n");
 }
 
 void test_FEN() {
@@ -196,22 +211,31 @@ void test_movegen() {
 
     struct Position pos_starting = pos_from_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     struct Position pos_captures = pos_from_FEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    struct Position pos_checkmate = pos_from_FEN("rnb1kbnr/pppp1ppp/4p3/8/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 0 1");
+    printf("%d\n", pos_captures.piece_list[c1]);
 
     struct Move move_list_starting[256];
     struct Move move_list_captures[256];
+    struct Move move_list_checkmate[256];
 
     int num_moves = generate_moves(move_list_starting, &pos_starting);
     int num_moves_captures = generate_moves(move_list_captures, &pos_captures);
+    int num_moves_checkmate = generate_moves(move_list_checkmate, &pos_checkmate);
+    for (int i = 0; i < num_moves_checkmate; ++i)
+        print_move(move_list_checkmate[i], pos_checkmate);
+    assert(num_moves_checkmate == 0);
 
+    printf("First position:\n");
+    print_position(&pos_starting);
     printf("Legal moves in position 1:\n");
-    for (int i = 0; i < num_moves; ++i) {
+    for (int i = 0; i < num_moves; ++i)
         print_move(move_list_starting[i], pos_starting);
-    }
 
+    printf("Second position:\n");
+    print_position(&pos_captures);
     printf("\nLegal moves in position 2\n");
-    for (int i = 0; i < num_moves_captures; ++i) {
+    for (int i = 0; i < num_moves_captures; ++i)
         print_move(move_list_captures[i], pos_captures);
-    }
 }
 
 void test_in_between_LUT() {
@@ -238,9 +262,9 @@ void test_attackers_to() {
     struct Position test_pos_1 = pos_from_FEN("1r1k2nr/3b1n2/3pp3/R4PR1/1N4N1/8/4P1B1/3QK3 b KQkq e6 0 1");
     struct Position test_pos_2 = pos_from_FEN("4k1RQ/3PPP2/6B1/8/8/8/8/8 b - - 0 1");
     struct Position test_pos_3 = pos_from_FEN("5k2/8/8/8/2q2r2/7b/3n2p1/1q3K2 w - - 0 1");
-    const enum Side side1 = test_pos_1.side_to_move;
-    const enum Side side2 = test_pos_2.side_to_move;
-    const enum Side side3 = test_pos_3.side_to_move;
+    enum Side side1 = test_pos_1.side_to_move;
+    enum Side side2 = test_pos_2.side_to_move;
+    enum Side side3 = test_pos_3.side_to_move;
     u64 attacks_1 = attackers_to(d5, &test_pos_1, side1);
     print_bitboard(attacks_1);
     assert(attacks_1 == (set_bit(a5) | set_bit(b4) | set_bit(d1) | set_bit(g2)));
@@ -255,53 +279,41 @@ void test_attackers_to() {
 }
 
 static bool bitboard_piece_list_consistent(const struct Position *pos) {
-    printf("Testing bitboard consistency...\n\n");
     for (int sq = 0; sq < 64; ++sq) {
-        printf("Testing square %s\n", square_name_LUT[sq]);
         if (pos->piece_list[sq] == PIECE_EMPTY) {
-            printf("Square is empty\n");
             //Check that the occupancy bb does not have the bit set
             if (is_set(sq, pos->occupied_squares[WHITE]))
                 return false;
-            printf("Square passed occupancy\n");
             //Check that all the piece bitboards are empty there
             for (enum Piece_type pt = PAWN; pt <= KING; ++pt) {
                 if (is_set(sq, pos->piece_bb[pt][WHITE]) || is_set(sq, pos->piece_bb[pt][BLACK]))
                     return false;
             }
-
-            printf("Square passed piece bitboards\n\n");
         }
 
         else {
-            const enum Piece piece = pos->piece_list[sq];
-            const enum Piece_type piece_type = to_piece_type(piece);
-            const enum Side color = piece_color(piece);
-            const enum Side other_side_color = abs(color - 1);
+            enum Piece piece = pos->piece_list[sq];
+            enum Piece_type piece_type = to_piece_type(piece);
+            enum Side color = piece_color(piece);
+            enum Side other_side_color = abs(color - 1);
             
-            printf("Square has piece %s on it\n", piece_name_LUT[piece]);
             //Check that the occupancy bitboard is set for the right side.
             if (!is_set(sq, pos->occupied_squares[color]) || is_set(sq, pos->occupied_squares[other_side_color]))
                 return false;
-            printf("Passed occupancy\n");
             
             //Check that the bitboard for the piece is set
             if (!is_set(sq, pos->piece_bb[piece_type][color]))
                 return false;
-            printf("Passed piece bb bit set check\n");
 
             //All other bitboards should have that bit unset.
             if (is_set(sq, pos->piece_bb[piece_type][other_side_color]))
                 return false;
-            printf("Passed other color bit unset check\n");
 
             for (enum Piece_type pt_idx = PAWN; pt_idx <= KING; ++pt_idx) {
                 if (pt_idx != piece_type)
                     if (is_set(sq, pos->piece_bb[pt_idx][WHITE]) || is_set(sq, pos->piece_bb[pt_idx][BLACK]))
                         return false;
             }
-
-            printf("Passed other piece type bits unset\n\n");
         }
     }
 
@@ -311,11 +323,11 @@ static bool bitboard_piece_list_consistent(const struct Position *pos) {
 void test_make_move() {
     MS_Stack *move_state_stk = stk_create(INIT_STACK_SIZE);
     struct Position test_pos = pos_from_FEN("4k3/7p/8/3Pp3/5r2/8/3BQPN1/R3K2R w KQkq - 0 1");
-    const struct Move m1 = create_regular_move(g2, f4);
-    const struct Move m2 = create_special_move(CASTLING, PT_NULL, e1, g1); //Kingside castling
-    const struct Move m3 = create_special_move(CASTLING, PT_NULL, e1, b1); //Queenside castling
-    const struct Move m4 = create_special_move(ENPASSANT, PT_NULL, d5, e6); //EP capture
-    const struct Move m5 = create_regular_move(h7, h6);
+    struct Move m1 = create_regular_move(g2, f4);
+    struct Move m2 = create_special_move(CASTLING, PT_NULL, e1, g1); //Kingside castling
+    struct Move m3 = create_special_move(CASTLING, PT_NULL, e1, c1); //Queenside castling
+    struct Move m4 = create_special_move(ENPASSANT, PT_NULL, d5, e6); //EP capture
+    struct Move m5 = create_regular_move(h7, h6);
 
     assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == WHITE);
@@ -346,7 +358,7 @@ void test_make_move() {
     assert(test_pos.side_to_move == WHITE);
 
     make_move(m3, &test_pos, move_state_stk);
-    assert(test_pos.piece_list[b1] == WHITE_KING && test_pos.piece_list[c1] == WHITE_ROOK);
+    assert(test_pos.piece_list[c1] == WHITE_KING && test_pos.piece_list[d1] == WHITE_ROOK);
     assert(test_pos.can_kingside_castle[WHITE] == false && test_pos.can_queenside_castle[WHITE] == false);
     assert(bitboard_piece_list_consistent(&test_pos));
     assert(test_pos.side_to_move == BLACK);
@@ -381,7 +393,7 @@ void test_stack() {
     for (int i = 0; i < 100; ++i)  {
         struct Move_state ms = {0};
         ms.half_move_clock = i; // Use the half move clock to differentiate the different move structs in this test.
-        int res = stk_push(stack, &ms);
+        int res = stk_push(stack, ms);
         assert(res == 0);
     }
 
@@ -397,11 +409,11 @@ void test_stack() {
 void test_legal_move_check() {
     init_LUTs();
     struct Position pos1 = pos_from_FEN("3kr3/8/8/q7/7B/6n1/3PR3/R3K2R w KQkq - 0 1");
-    const struct Move mov1 = create_regular_move(d2, d4);
-    const struct Move mov2 = create_regular_move(e2, e6);
-    const struct Move mov3 = create_regular_move(e2, f2);
-    const struct Move mov4 = create_special_move(CASTLING, PT_NULL, e1, g1);
-    const struct Move mov5 = create_special_move(CASTLING, PT_NULL, e1, b1);
+    struct Move mov1 = create_regular_move(d2, d4);
+    struct Move mov2 = create_regular_move(e2, e6);
+    struct Move mov3 = create_regular_move(e2, f2);
+    struct Move mov4 = create_special_move(CASTLING, PT_NULL, e1, g1);
+    struct Move mov5 = create_special_move(CASTLING, PT_NULL, e1, c1);
 
     MS_Stack *move_state_stk = stk_create(64);
     assert(!legal(mov1, &pos1, move_state_stk)); //The pawn is pinned
@@ -409,4 +421,89 @@ void test_legal_move_check() {
     assert(!legal(mov3, &pos1, move_state_stk)); //Rook is pinned, and moves so that the king is under attack
     assert(!legal(mov4, &pos1, move_state_stk)); //Kingside castling prohibited since king passes through check
     assert(legal(mov5, &pos1, move_state_stk)); //Queenside castling not blocked.
+
+    struct Position castling_check = pos_from_FEN("4k3/8/8/8/4q3/8/8/R3K2R w KQ - 0 1");
+    struct Move ks_castle = create_special_move(CASTLING, PT_NULL, e1, g1);
+    struct Move qs_castle = create_special_move(CASTLING, PT_NULL, e1, c1);
+    assert(!legal(ks_castle, &castling_check, move_state_stk));
+    assert(!legal(qs_castle, &castling_check, move_state_stk));
 }
+
+void run_perft_tests() {
+    init_LUTs();
+    struct Position starting_pos = pos_from_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    struct Position pos_2 = pos_from_FEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    struct Position pos_3 = pos_from_FEN("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    struct Position pos_4 = pos_from_FEN("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+    struct Position pos_5 = pos_from_FEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+
+
+    uint64_t starting_pos_results[] = {20, 400, 8902, 197281, 4865609};
+    uint64_t pos_2_results[] = {48, 2039, 97862, 4085603, 193690690};
+    uint64_t pos_3_results[] = {14, 191, 2812, 43238, 674624};
+    uint64_t pos_4_results[] = {6, 264, 9467, 422333, 15833292};
+    uint64_t pos_5_results[] = {44, 1486, 62379, 2103487, 89941194};
+    MS_Stack *move_state_stk_1 = stk_create(256);
+    MS_Stack *move_state_stk_2 = stk_create(256);
+    MS_Stack *move_state_stk_3 = stk_create(256);
+    MS_Stack *move_state_stk_4 = stk_create(256);
+    MS_Stack *move_state_stk_5 = stk_create(256);
+
+    struct Perft_counts cts = {0};
+    for (int depth = 1; depth <= 5; ++depth) {
+        printf("Depth: %d\n", depth);
+        uint64_t starting_res = perft(&starting_pos, depth, move_state_stk_1, &cts, false);
+        uint64_t pos_2_res = perft(&pos_2, depth, move_state_stk_2, &cts, false);
+        uint64_t pos_3_res = perft(&pos_3, depth, move_state_stk_3, &cts, false);
+        uint64_t pos_4_res = perft(&pos_4, depth, move_state_stk_4, &cts, false);
+        uint64_t pos_5_res = perft(&pos_5, depth, move_state_stk_5, &cts, false);
+        printf("%llu\n", pos_2_res);
+        assert(starting_res == starting_pos_results[depth - 1]);
+        assert(pos_2_res == pos_2_results[depth - 1]);
+        assert(pos_3_res == pos_3_results[depth - 1]);
+        assert(pos_4_res == pos_4_results[depth - 1]);
+        assert(pos_5_res == pos_5_results[depth - 1]);
+    }
+
+    stk_destroy(move_state_stk_1);
+    stk_destroy(move_state_stk_2);
+    stk_destroy(move_state_stk_3);
+}
+
+uint64_t perft(struct Position* pos, int depth, MS_Stack *move_state_stk, struct Perft_counts *cts, bool print_divide_info) {
+    struct Move move_list[256];
+    uint64_t nodes = 0;
+
+    int num_generated_moves = generate_moves(move_list, pos);
+    if (depth == 0)
+        return 1;
+    //u64 king_bb = pos->piece_bb[KING][pos->side_to_move];
+    //enum Square king_square = lsb(king_bb);
+
+    for (int i = 0; i < num_generated_moves; ++i) {
+        if (move_list[i].castling)
+            ++cts->castlings;
+        if (move_list[i].en_passant)
+            ++cts->en_passants;
+        if (move_list[i].promotion_type != PT_NULL)
+            ++cts->promotions;
+
+        if (print_divide_info) {
+            uint64_t move_cts = 0;
+            print_move(move_list[i], *pos);
+            make_move(move_list[i], pos, move_state_stk);
+            move_cts += perft(pos, depth - 1, move_state_stk, cts, false);
+            nodes += move_cts;
+            unmake_move(move_list[i], pos, move_state_stk);
+            printf("Number of sub-leaves: %u\n\n", move_cts);
+        }
+
+        else {
+            make_move(move_list[i], pos, move_state_stk);
+            nodes += perft(pos, depth - 1, move_state_stk, cts, false); 
+            unmake_move(move_list[i], pos, move_state_stk);
+        }
+    }
+    return nodes;
+}
+

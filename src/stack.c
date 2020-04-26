@@ -12,14 +12,14 @@ struct MS_Stack {
 };
 
 MS_Stack* stk_create(size_t initial_size) {
-    MS_Stack *new_stk = malloc(sizeof(MS_Stack) * initial_size);
+    MS_Stack *new_stk = malloc(sizeof(MS_Stack));
     if (new_stk == NULL) {
         free(new_stk);
         return NULL;
     }
     new_stk->top = 0;
-    new_stk->num_items = 0;
-    new_stk->arr = NULL;
+    new_stk->num_items = initial_size;
+    new_stk->arr = malloc(sizeof(struct Move_state) * initial_size);
 
     return new_stk;
 }
@@ -29,7 +29,7 @@ void stk_destroy(MS_Stack *stack) {
     free(stack);
 }
 
-int stk_push(MS_Stack *stack, const struct Move_state *ms) {
+int stk_push(MS_Stack *stack, struct Move_state ms) {
     if (stack->top >= stack->num_items) {
         stack->arr = realloc(stack->arr, sizeof(struct Move_state) * REALLOC_SIZE);
         
@@ -39,7 +39,7 @@ int stk_push(MS_Stack *stack, const struct Move_state *ms) {
         stack->num_items += REALLOC_SIZE;
     }
 
-    stack->arr[stack->top++] = *ms;
+    stack->arr[stack->top++] = ms;
     return 0;
 }
 

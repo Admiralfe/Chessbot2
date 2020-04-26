@@ -45,7 +45,8 @@ struct Move {
 struct Move_state {
     unsigned int half_move_clock;
     enum Square ep_square;
-    bool can_castle[2];
+    bool can_kingside_castle[2];
+    bool can_queenside_castle[2];
     enum Piece captured_piece;
 };
 

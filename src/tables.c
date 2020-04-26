@@ -27,7 +27,6 @@ void fill_attack_rays() {
     u64 north_ray = FileABB ^ set_bit(a1);
     u64 south_ray = FileHBB ^ set_bit(h8);
 
-    fprintf(stderr, "Filling north and south attack rays...");
     for (int sq = 0; sq < 64; ++sq) {
         attack_rays_data[sq][NORTH] = north_ray;
         north_ray <<= 1;
@@ -37,14 +36,12 @@ void fill_attack_rays() {
         attack_rays_data[sq][SOUTH] = south_ray;
         south_ray >>= 1;
     }
-    fprintf(stderr, "Done!\n");
 
     //Northeast & east & southeast now, taking care because of wraps
     u64 noea_ray = Main_diagBB ^ set_bit(a1);
     u64 soea_ray = Anti_diagBB ^ set_bit(a8);
     u64 ea_ray = Rank1BB ^ set_bit(a1);
 
-    fprintf(stderr, "Filling NE, E and SE attack rays...");
     for (int file = 0; file < 8; ++file) {
         u64 tmp_ne_ray = noea_ray;
         u64 tmp_se_ray = soea_ray;
@@ -69,13 +66,11 @@ void fill_attack_rays() {
         soea_ray = shift_E(soea_ray);
         ea_ray = shift_E(ea_ray);
     }
-    fprintf(stderr, "Done!\n");
 
     u64 nowe_ray = Anti_diagBB ^ set_bit(h1);
     u64 sowe_ray = Main_diagBB ^ set_bit(h8);
     u64 we_ray = Rank1BB ^ set_bit(h1);
 
-    fprintf(stderr, "Filling NW, W and SW attack rays...");
     //Northwest & west &  Southwest
     for (int file = 7; file >= 0; --file) {
         u64 tmp_nw_ray = nowe_ray;
@@ -101,7 +96,6 @@ void fill_attack_rays() {
         sowe_ray = shift_W(sowe_ray);
         we_ray = shift_W(we_ray);
     }
-    fprintf(stderr, "Done!\n");
 }
 
 

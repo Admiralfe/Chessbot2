@@ -83,6 +83,10 @@ static inline enum File sq_file(enum Square sq) {
     return (enum File) sq % 8;
 }
 
+static inline enum Square file_rank_sq(enum File f, enum Rank r) {
+    return (enum Square) 8 * r + f;
+}
+
 void pos_from_piece_list(struct Position *pos);
 struct Position pos_from_FEN(char *fen_str);
 #endif

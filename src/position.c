@@ -230,7 +230,8 @@ void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
     enum Piece_type moved_piece_type = to_piece_type(moved_piece);
     enum Side us = pos->side_to_move;
 
-    store_move_state(pos, m, move_state_stk);
+    if (move_state_stk != NULL)
+        store_move_state(pos, m, move_state_stk);
 
     //If the king moves, the right to castle is lost.
     if (moved_piece_type == KING) {
@@ -488,7 +489,7 @@ struct Position pos_from_FEN(char *fen_str) {
         char tmp[3];
         strncpy(tmp, fen_str + str_idx, 2);
         tmp[2] = '\0';
-        pos.half_move_clock = atoi( tmp);
+        pos.half_move_clock = atoi(tmp);
     }
 
     return pos;

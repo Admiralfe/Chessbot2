@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -64,7 +65,7 @@ static struct Move token_to_move(const char *token, const struct Position *pos) 
     enum Side us = piece_color(pos->piece_list[from_sq]);
     if (moved_pt == PAWN && to_sq == pos->ep_square && (attack_set.pawn[us][from_sq] & set_bit(to_sq)))
         move.en_passant = true;
-    
+
     return move;
 }
 
@@ -105,33 +106,49 @@ static void uci_position(struct Position *pos, const char *command_str) {
     }
 }
 
+//Wrapper around uci_go that takes a void* as argument, which is the
+//pthreads handles function args.
+static void uci_go_pthreads_wrap(const void* pos) {
+    uci_go((struct Postion*) pos);
+}
+
+static void uci_go(const struct Postion *pos) {
+
+}
+
 void uci_loop() {
     struct Position pos;
     char command_str[BUFF_SZ];
     char *token = NULL;
+    pthread_t search_thread;
+
 
     do {
         fgets(command_str, BUFF_SZ, stdin);
         token = strtok(command_str, " ");
 
         if (strcmp(token, "uci")) {
-            puts("id name Chessbot2");
-            puts("id author Felix Liu");
-            puts("uciok");
+            puts("id name Chessbot2\n");
+            puts("id author Felix Liu\n");
+            puts("uciok\n");
         }
 
         else if (strcmp(token, "isready")) {
-            puts("readyok");
+            puts("readyok\n");
         }
 
         else if (strcmp(token, "position")) {
-            uci_position(&pos, command_str);            
+            uci_position(&pos, command_str);
         }
         else if (strcmp(token, "ucinewgame")) {
-            
+
         }
         else if (strcmp(token, "go")) {
-            
+            int rc = pthread_create(&search_thread, NULL, uci_go_pthreads_wrap, (void *) &pos);
+            if (rc) {
+                fprintf(stderr, "Non-zero return address when spawning thread: rc %d\n", rc);
+                exit(-1);
+            }
         }
     } while(!strcmp(token, "quit"));
 }

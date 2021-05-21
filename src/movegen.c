@@ -36,7 +36,7 @@ int generate_pawn_moves(struct Move* move_list, struct Position *pos) {
             enum Square to = pop_lsb(&attacked_sqs);
 
             struct Move promotion_move = create_special_move(PROMOTION, KNIGHT, from, to);
-            
+
             //If one of the promotion moves is legal, all of them must be.
             if (legal(promotion_move, pos, tmp_stack)) {
             //Create the promotion moves

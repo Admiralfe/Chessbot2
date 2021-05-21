@@ -21,6 +21,7 @@ void test_make_move(void);
 void test_stack(void);
 void test_legal_move_check(void);
 void run_perft_tests(void);
+void test_evaluate_position(void);
 
 struct Perft_counts {
     int checkmates;

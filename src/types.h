@@ -21,7 +21,7 @@ enum Square {
 //Used to convert from the square number to the squares name in algebraic notation.
 extern const char* square_name_LUT[];
 extern const char* piece_name_LUT[];
-extern const char* piece_type_name_LUT[]; 
+extern const char* piece_type_name_LUT[];
 
 enum Rank {
     RANK_1, RANK_2, RANK_3, RANK_4,
@@ -35,9 +35,9 @@ enum File {
 
 enum Side { WHITE, BLACK };
 
-enum Piece { 
-    PIECE_EMPTY, 
-    WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP, WHITE_ROOK, WHITE_QUEEN, WHITE_KING, 
+enum Piece {
+    PIECE_EMPTY,
+    WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP, WHITE_ROOK, WHITE_QUEEN, WHITE_KING,
     BLACK_PAWN, BLACK_KNIGHT, BLACK_BISHOP, BLACK_ROOK, BLACK_QUEEN, BLACK_KING
 };
 

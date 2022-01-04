@@ -27,7 +27,7 @@ const u64 Anti_diagBB = 0x0102040810204080ULL;
 
 void print_bitboard(u64 bitboard) {
     char bb_str[73]; //Size is 64 squares, 8 newlines and 1 null terminator
-    
+
     //Index to keep track of position in string
     int i = 0;
     for (int row = 7; row >= 0; --row) {
@@ -37,7 +37,7 @@ void print_bitboard(u64 bitboard) {
         }
         bb_str[i] = '\n';
         ++i;
-    }   
+    }
 
 
     bb_str[i] = '\0';
@@ -46,7 +46,7 @@ void print_bitboard(u64 bitboard) {
 }
 
 void get_squares(enum Square *sq_list, u64 bb) {
-    while (bb) 
+    while (bb)
         *sq_list++ = pop_lsb(&bb);
 }
 

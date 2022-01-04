@@ -10,4 +10,3 @@ int generate_moves_pt(enum Piece_type pt, struct Move *move_list, struct Positio
 int generate_moves(struct Move *move_list, struct Position *pos);
 
 #endif
-    

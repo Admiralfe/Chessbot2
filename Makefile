@@ -1,12 +1,12 @@
 CC = gcc
 CFLAGS = -g -o2 -Wall -std=c11
-LDFLAGS =
+LDFLAGS = -pthread
 
 src = $(wildcard src/*.c)
 obj = $(src:.c=.o)
 
 chessBot:	$(obj)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) ${LDFLAGS} $(CFLAGS) -o $@ $^
 
 attacks.o: attacks.h position.h types.h
 

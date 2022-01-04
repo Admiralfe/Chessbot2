@@ -80,13 +80,11 @@ void print_position(const struct Position *position) {
 
     int idx = 0;
 
-    idx += snprintf(pos_str, 1024 - idx, "\n +---+---+---+---+---+---+---+---+\n"); 
+    idx += snprintf(pos_str, 1024 - idx, "\n +---+---+---+---+---+---+---+---+\n");
 
     for (int rank = RANK_8; rank >= RANK_1; --rank) {
         for (int file = FILE_A; file <= FILE_H; ++file  ) {
-            printf("Current square: %s\n", square_name_LUT[make_square(rank, file)]);
-            printf("Piece %c\n", piece_to_char[position->piece_list[make_square(rank, file)]]);
-            idx += snprintf(&pos_str[idx], 1024 - idx, 
+            idx += snprintf(&pos_str[idx], 1024 - idx,
                             "   %c", piece_to_char[get_piece(*position, make_square(rank, file))]);
         }
         idx += snprintf(&pos_str[idx], 1024 - idx, "\n +---+---+---+---+---+---+---+---+\n");
@@ -113,7 +111,7 @@ struct Move create_special_move(enum Move_type type, enum Piece_type promotion_t
     m.castling = false;
     m.en_passant = false;
     m.promotion_type = PT_NULL;
-    
+
     switch (type) {
         case CASTLING:
             m.castling = true;
@@ -207,12 +205,12 @@ static void place_piece(enum Square sq, enum Piece piece, struct Position *pos) 
     u64 sq_bb = set_bit(sq);
     pos->piece_list[sq] = piece;
     pos->piece_bb[piece_type][us] |= sq_bb;
-    
+
     //The bitboards for the opponents side need to have the bit unset, since any piece that was there would have been captured.
     for (enum Piece_type pt = PAWN; pt <= KING; ++pt)
         if (is_set(sq, pos->piece_bb[pt][them]))
             pos->piece_bb[pt][them] ^= sq_bb;
-    
+
     pos->occupied_squares[us] |= sq_bb;
     if (is_set(sq, pos->occupied_squares[them]))
         pos->occupied_squares[them] ^= sq_bb;
@@ -298,8 +296,8 @@ void make_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) {
         pos->ep_square = m.to_sq - pawn_push_offset;
     else
         pos->ep_square = SQUARE_EMPTY;
-    
-    
+
+
     //Change the side to move
     pos->side_to_move = other_side(pos->side_to_move);
 
@@ -318,7 +316,7 @@ void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) 
         place_piece(m.to_sq, prev_move_state.captured_piece, pos);
     else
         clear_square(m.to_sq, pos);
-    
+
 
     if (m.castling) {
         place_piece(m.from_sq, to_colored_piece(KING, moving_side), pos);
@@ -337,7 +335,7 @@ void unmake_move(struct Move m, struct Position *pos, MS_Stack *move_state_stk) 
     }
 
     else if (m.en_passant) {
-        int offset = (moving_side == WHITE) ? -8 : 8; 
+        int offset = (moving_side == WHITE) ? -8 : 8;
         //In en passant moves, one pawn will have been captured above the to square
         place_piece(m.to_sq + offset, to_colored_piece(PAWN, other_side_), pos);
     }
@@ -383,14 +381,15 @@ void pos_from_piece_list(struct Position *pos) {
 
 /*
 Creates a new position struct based on the FEN string supplied.
-Currently this function is not very robust, and the correctness of the FEN string is assumed to 
+Currently this function is not very robust, and the correctness of the FEN string is assumed to
 be the responsibility of say a GUI.
 */
 struct Position pos_from_FEN(char *fen_str) {
     int board_idx = (int) a8; //FEN strings start from rank 8.
     int str_idx = 0;
 
-    struct Position pos = {}; //C implicitly initializes struct elements to unsigned 0, which is what we want.
+    struct Position pos;
+    init_pos_struct(&pos);
     while (!isspace(fen_str[str_idx])) {
         if (isdigit(fen_str[str_idx])) {
             for (int i = 0; i < (fen_str[str_idx] - '0'); ++i) {
@@ -407,7 +406,7 @@ struct Position pos_from_FEN(char *fen_str) {
         else { //Means the current character is a '/'
             board_idx -= 16; //When we go to the next rank, we need to wrap the index back around
         }
-        
+
         ++str_idx;
     }
 
@@ -473,7 +472,7 @@ struct Position pos_from_FEN(char *fen_str) {
         pos.ep_square = (enum Square) 8 * (fen_str[str_idx + 1] - '1') + (fen_str[str_idx] - 'a');
         str_idx += 2;
     }
-    
+
     assert(isspace(fen_str[str_idx]) &&
            "Incorrectly formatted FEN string, expected space after ep_square");
     ++str_idx;
@@ -495,8 +494,8 @@ struct Position pos_from_FEN(char *fen_str) {
     return pos;
 }
 
-void print_move(struct Move move, struct Position pos) {
-    enum Piece piece_type = pos.piece_list[move.from_sq];
+void print_move(struct Move move, const struct Position *pos) {
+    enum Piece piece_type = pos->piece_list[move.from_sq];
 
     if (move.castling) {
         //Short castling
@@ -540,7 +539,7 @@ void print_move(struct Move move, struct Position pos) {
 
     //If the target square intersects with any of the pieces, or the move is en passant
     //the move is a capture.
-    if ((set_bit(move.to_sq) & pos_occupancy(&pos)) || move.en_passant) {
+    if ((set_bit(move.to_sq) & pos_occupancy(pos)) || move.en_passant) {
         printf("%sx%s", square_name_LUT[move.from_sq], square_name_LUT[move.to_sq]);
     }
 
@@ -577,7 +576,7 @@ static bool queenside_castling_impeded(enum Side side, const struct Position *po
 }
 
 static bool kingside_castling_impeded(enum Side side, const struct Position *pos) {
-    return (side == WHITE) ? pos_occupancy(pos) & (set_bit(f1) | set_bit(g1)) : 
+    return (side == WHITE) ? pos_occupancy(pos) & (set_bit(f1) | set_bit(g1)) :
                              pos_occupancy(pos) & (set_bit(f8) | set_bit(g8));
 }
 

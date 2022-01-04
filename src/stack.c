@@ -7,7 +7,6 @@
 struct MS_Stack {
     size_t top;
     size_t num_items;
-    
     struct Move_state *arr;
 };
 
@@ -32,10 +31,8 @@ void stk_destroy(MS_Stack *stack) {
 int stk_push(MS_Stack *stack, struct Move_state ms) {
     if (stack->top >= stack->num_items) {
         stack->arr = realloc(stack->arr, sizeof(struct Move_state) * REALLOC_SIZE);
-        
         if (stack->arr == NULL)
             return -1;
-        
         stack->num_items += REALLOC_SIZE;
     }
 

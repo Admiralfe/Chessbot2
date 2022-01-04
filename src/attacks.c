@@ -87,10 +87,10 @@ u64 attacks_from(enum Piece_type pt, const struct Position *pos, enum Square sq)
         case QUEEN:
             return attacks_from(BISHOP, pos, sq) |
                    attacks_from(ROOK, pos, sq);
-        
+
         case KING:
             return king_attacks(sq);
-        
+
         case KNIGHT:
             return knight_attacks(sq);
 

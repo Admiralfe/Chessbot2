@@ -18,7 +18,7 @@ struct Position {
     u64 occupied_squares[2];
 
     enum Piece piece_list[64];
-    
+
     /* state related information */
     enum Side side_to_move;
 
@@ -40,7 +40,7 @@ struct Move {
     bool castling;
 };
 
-// Struct used to restore info about the previous position that 
+// Struct used to restore info about the previous position that
 // cannot be deduced from the Move and the current position when undoing moves.
 struct Move_state {
     unsigned int half_move_clock;
@@ -59,7 +59,7 @@ struct Move create_special_move(enum Move_type type, enum Piece_type piece_type,
 bool legal(struct Move m, struct Position *pos, MS_Stack *move_state_stk);
 
 //Prints a move in the given notation in algebraic notation.
-void print_move(struct Move move, struct Position pos);
+void print_move(struct Move move, const struct Position *pos);
 
 //Prints a simple ASCII representation of the position.
 void print_position(const struct Position *position);

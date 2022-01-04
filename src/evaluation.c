@@ -12,17 +12,19 @@ int evaluate_position(const struct Position *pos, enum Side side) {
     int score = 0;
     //Material count in centipawns
     for (enum Piece_type pt = PAWN; pt <= KING; ++pt) {
-        u64 our_bitboard = pos->piece_bb[pt][side];
-        while (our_bitboard) {
+        u64 white_bitboard = pos->piece_bb[pt][WHITE];
+        while (white_bitboard) {
             score += piece_value[pt];
-            pop_lsb(&our_bitboard);
+            pop_lsb(&white_bitboard);
         }
-        u64 their_bitboard = pos->piece_bb[pt][abs(side - 1)];
-        while (their_bitboard) {
+        u64 black_bitboard = pos->piece_bb[pt][BLACK];
+        while (black_bitboard) {
             score -= piece_value[pt];
-            pop_lsb(&their_bitboard);
+            pop_lsb(&black_bitboard);
         }
     }
 
-    return score;
+    int factor = side == WHITE ? 1 : -1;
+
+    return factor * score;
 }

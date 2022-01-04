@@ -138,8 +138,9 @@ static void uci_go(struct Postion *pos) {
 
 //Wrapper around uci_go that takes a void* as argument, which is the
 //pthreads handles function args.
-static void uci_go_pthreads_wrap(void* pos) {
+static void* uci_go_pthreads_wrap(void* pos) {
     uci_go((struct Postion*) pos);
+    return NULL;
 }
 
 static void run_search(struct Position *pos, char *command_str) {

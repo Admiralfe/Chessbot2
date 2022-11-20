@@ -430,7 +430,7 @@ void test_legal_move_check() {
     assert(!legal(qs_castle, &castling_check, move_state_stk));
 }
 
-void run_perft_tests() {
+void run_perft_tests(int depth_max) {
     init_LUTs();
     struct Position starting_pos = pos_from_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     struct Position pos_2 = pos_from_FEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
@@ -451,14 +451,22 @@ void run_perft_tests() {
     MS_Stack *move_state_stk_5 = stk_create(256);
 
     struct Perft_counts cts = {0};
-    for (int depth = 1; depth <= 4; ++depth) {
-        printf("Depth: %d\n", depth);
+    for (int depth = 1; depth <= depth_max; ++depth) {
         uint64_t starting_res = perft(&starting_pos, depth, move_state_stk_1, &cts, false);
         uint64_t pos_2_res = perft(&pos_2, depth, move_state_stk_2, &cts, false);
         uint64_t pos_3_res = perft(&pos_3, depth, move_state_stk_3, &cts, false);
         uint64_t pos_4_res = perft(&pos_4, depth, move_state_stk_4, &cts, false);
         uint64_t pos_5_res = perft(&pos_5, depth, move_state_stk_5, &cts, false);
         assert(starting_res == starting_pos_results[depth - 1]);
+        printf("Depth: %d\n"
+                "pos 2\tcalculated: %llu, reference. %llu\n"
+                "pos 3\tcalculated: %llu, reference. %llu\n"
+                "pos 4\tcalculated: %llu, reference. %llu\n"
+                "pos 5\tcalculated: %llu, reference. %llu\n",
+                depth, pos_2_res, pos_2_results[depth - 1],
+                pos_3_res, pos_3_results[depth - 1],
+                pos_4_res, pos_4_results[depth - 1],
+                pos_5_res, pos_5_results[depth - 1]);
         assert(pos_2_res == pos_2_results[depth - 1]);
         assert(pos_3_res == pos_3_results[depth - 1]);
         assert(pos_4_res == pos_4_results[depth - 1]);
@@ -470,7 +478,7 @@ void run_perft_tests() {
     stk_destroy(move_state_stk_2);
     stk_destroy(move_state_stk_3);
     stk_destroy(move_state_stk_4);
-    stk_destroy(move_state_stk_5);
+    //stk_destroy(move_state_stk_5);
 }
 
 uint64_t perft(struct Position* pos, int depth, MS_Stack *move_state_stk, struct Perft_counts *cts, bool print_divide_info) {

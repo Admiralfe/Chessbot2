@@ -384,7 +384,7 @@ Creates a new position struct based on the FEN string supplied.
 Currently this function is not very robust, and the correctness of the FEN string is assumed to
 be the responsibility of say a GUI.
 */
-struct Position pos_from_FEN(char *fen_str) {
+struct Position pos_from_FEN(const char *fen_str) {
     int board_idx = (int) a8; //FEN strings start from rank 8.
     int str_idx = 0;
 

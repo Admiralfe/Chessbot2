@@ -4,7 +4,9 @@ project(Chessbot2 LANGUAGES C)
 
 find_package(Threads REQUIRED)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/cargs)
 
 add_executable(chessbot
     src/attacks.c
@@ -32,6 +34,6 @@ add_executable(chessbot
 
 target_compile_features(chessbot PRIVATE c_std_11)
 set_target_properties(chessbot PROPERTIES C_EXTENSIONS off)
-target_link_libraries(chessbot PRIVATE Threads::Threads)
+target_link_libraries(chessbot PRIVATE Threads::Threads cargs)
 
 

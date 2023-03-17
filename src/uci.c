@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <ctype.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +67,7 @@ static struct Move token_to_move(const char *token, const struct Position *pos) 
 
     struct Move move = create_regular_move(from_sq, to_sq);
 
-    if (moved_pt == KING && abs(from_sq - to_sq) == 2)
+    if (moved_pt == KING && (from_sq - to_sq) == 2)
         move.castling = true;
 
     if (strlen(token) == 5)
@@ -89,7 +90,7 @@ static void uci_position(struct Position *pos, const char *command_str) {
         char fen_string_buff[BUFF_SZ];
         char *buff_ptr = &fen_string_buff[0];
         unsigned token_len = 0;
-        while (token != "moves" && token != NULL) {
+        while (strncmp(token, "moves", 6) && token != NULL) {
             token = strtok(NULL, separator);
             strncpy(buff_ptr, token, buff_sz_left);
 
@@ -104,7 +105,7 @@ static void uci_position(struct Position *pos, const char *command_str) {
         assert(false);
     }
 
-    if (strncmp(token, "moves", 6) != 0)
+    if (token == NULL || strncmp(token, "moves", 6) != 0)
         return;
 
     //Apply moves to the position.
@@ -122,7 +123,7 @@ static void uci_position(struct Position *pos, const char *command_str) {
     print_position(pos);
 }
 
-static void uci_go(struct Postion *pos) {
+static void uci_go(struct Position *pos) {
     //TODO: Add proper handling of options
     struct SearchOptions opts = {
         .depth = 6,
@@ -139,7 +140,7 @@ static void uci_go(struct Postion *pos) {
 //Wrapper around uci_go that takes a void* as argument, which is the
 //pthreads handles function args.
 static void* uci_go_pthreads_wrap(void* pos) {
-    uci_go((struct Postion*) pos);
+    uci_go((struct Position*) pos);
     return NULL;
 }
 

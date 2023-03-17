@@ -20,7 +20,7 @@ void test_attackers_to(void);
 void test_make_move(void);
 void test_stack(void);
 void test_legal_move_check(void);
-void run_perft_tests(void);
+void run_perft_tests(int depth_max);
 void test_evaluate_position(void);
 
 struct Perft_counts {
